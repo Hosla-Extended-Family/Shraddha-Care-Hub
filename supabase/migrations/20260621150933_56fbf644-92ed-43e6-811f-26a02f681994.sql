@@ -1,0 +1,1 @@
+ALTER TABLE public.membership_applications ADD COLUMN IF NOT EXISTS plan text NOT NULL DEFAULT 'standard';
