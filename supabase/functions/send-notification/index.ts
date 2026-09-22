@@ -13,6 +13,7 @@ serve(async (req) => {
 
   try {
     const { type, reportId, applicationId, inquiryId, email, name, companyName } = await req.json();
+    let partnerInquiry: any = null;
     
     // Validate required fields
     const validTypes = ["abuse_report", "volunteer_application", "partner_inquiry"];
@@ -73,7 +74,7 @@ serve(async (req) => {
     } else if (type === "partner_inquiry" && inquiryId) {
       const { data: inquiry, error: inquiryError } = await supabase
         .from("partner_inquiries")
-        .select("id, created_at")
+        .select("*")
         .eq("id", inquiryId)
         .gte("created_at", fiveMinutesAgo)
         .single();
@@ -85,6 +86,7 @@ serve(async (req) => {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
+      partnerInquiry = inquiry;
     } else {
       return new Response(JSON.stringify({ error: "Missing report, application, or inquiry ID" }), {
         status: 400,
@@ -140,15 +142,37 @@ serve(async (req) => {
         <p><a href="https://shraddha.hosla.in/admin/dashboard/volunteers">View Application</a></p>
       `;
     } else if (type === "partner_inquiry") {
-      subject = "🏢 New Corporate Partnership Inquiry - Shraddha";
+      const i = partnerInquiry || {};
+      const esc = (v: any) =>
+        v == null || v === ""
+          ? "Not provided"
+          : String(v).replace(/[<>&]/g, (c) => ({ "<": "&lt;", ">": "&gt;", "&": "&amp;" }[c] as string));
+      const statusRaw = (i.status || "new").toString().toLowerCase();
+      const nextStep = statusRaw === "new" || statusRaw === "pending"
+        ? "🟡 New — awaiting first response (aim to reply within 24–48 hours)."
+        : `Current status: ${esc(i.status)}.`;
+      const websiteHtml = i.website
+        ? `<a href="${esc(i.website)}">${esc(i.website)}</a>`
+        : "Not provided";
+      subject = `🤝 New Partnership Inquiry: ${i.company_name || companyName || "Organization"} - Shraddha`;
       html = `
-        <h1>New Corporate Partnership Inquiry</h1>
-        <p>A new corporate partnership inquiry has been received!</p>
-        <p><strong>Company:</strong> ${companyName || "Not provided"}</p>
-        <p><strong>Contact Person:</strong> ${name || "Not provided"}</p>
-        <p><strong>Email:</strong> ${email || "Not provided"}</p>
-        <p>Please log in to the admin dashboard to review the full inquiry and follow up.</p>
-        <p><a href="https://shraddha.hosla.in/admin/dashboard">View Dashboard</a></p>
+        <h1>New Partnership / Collaboration Inquiry</h1>
+        <p>A new inquiry has been received through the Collaborate / Partner page.</p>
+        <table cellpadding="6" style="border-collapse:collapse;font-family:Arial,sans-serif;font-size:14px">
+          <tr><td><strong>Organization</strong></td><td>${esc(i.company_name || companyName)}</td></tr>
+          <tr><td><strong>Organization Type</strong></td><td>${esc(i.organization_type)}</td></tr>
+          <tr><td><strong>Contact Person</strong></td><td>${esc(i.contact_name || name)}</td></tr>
+          <tr><td><strong>Email</strong></td><td>${esc(i.email || email)}</td></tr>
+          <tr><td><strong>Phone</strong></td><td>${esc(i.phone)}</td></tr>
+          <tr><td><strong>Website</strong></td><td>${websiteHtml}</td></tr>
+          <tr><td><strong>Collaboration Area</strong></td><td>${esc(i.collaboration_area)}</td></tr>
+          <tr><td><strong>Preferred Contact Time</strong></td><td>${esc(i.preferred_contact_time)}</td></tr>
+        </table>
+        <p style="margin-top:16px"><strong>Project Description:</strong><br/>${esc(i.message)}</p>
+        <p style="margin-top:16px;padding:10px 14px;background:#faf5ff;border-left:4px solid #7c3aed;border-radius:4px">
+          <strong>Next step:</strong> ${nextStep}
+        </p>
+        <p><a href="https://shraddha.hosla.in/admin/dashboard/partners">View & follow up in the admin dashboard</a></p>
       `;
     }
 

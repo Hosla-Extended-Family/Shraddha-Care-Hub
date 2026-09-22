@@ -1,0 +1,13 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1788604053774,
+      "tag": "0000_restrict_blog_comment_pii",
+      "breakpoints": true
+    }
+  ]
+}

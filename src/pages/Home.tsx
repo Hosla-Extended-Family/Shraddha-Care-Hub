@@ -277,7 +277,7 @@ export default function Home() {
                         : 'bg-foreground hover:bg-foreground/90 text-background'
                     }`}
                   >
-                    <Link to="/corporate-care">
+                    <Link to="/partner#corporate-plan">
                       Explore Corporate Care
                       <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
                     </Link>

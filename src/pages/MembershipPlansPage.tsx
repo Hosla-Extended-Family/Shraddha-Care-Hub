@@ -78,7 +78,7 @@ export default function MembershipPlansPage() {
                 variant="outline"
                 className="border-[hsl(250,70%,45%)]/30 text-[hsl(250,70%,45%)] hover:bg-[hsl(250,70%,45%)] hover:text-white group"
               >
-                <Link to="/corporate-care">
+                <Link to="/partner#corporate-plan">
                   <Building2 className="mr-2 h-4 w-4" />
                   Corporate Care Program
                 </Link>

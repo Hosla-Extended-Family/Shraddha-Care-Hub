@@ -43,7 +43,7 @@ const bloodGroups = ["A+", "A-", "B+", "B-", "O+", "O-", "AB+", "AB-", "Don't kn
 const schema = z.object({
   name: z.string().trim().min(1, "Name is required").max(100, "Name is too long"),
   email: z.string().trim().email("Enter a valid email").max(255, "Email is too long"),
-  voterId: z.string().trim().min(1, "Voter ID is required").max(50, "Voter ID is too long"),
+  
   childContact: z
     .string()
     .trim()
@@ -84,7 +84,7 @@ export function HoslaMembershipModal({ open, onOpenChange, plan = "standard" }: 
     defaultValues: {
       name: "",
       email: "",
-      voterId: "",
+      
       childContact: "",
       address: "",
       dateOfBirth: "",
@@ -173,7 +173,7 @@ export function HoslaMembershipModal({ open, onOpenChange, plan = "standard" }: 
         id: applicationId,
         name: data.name,
         email: data.email,
-        voter_id: data.voterId,
+        
         child_contact: data.childContact,
         address: data.address,
         date_of_birth: data.dateOfBirth,
@@ -305,21 +305,6 @@ export function HoslaMembershipModal({ open, onOpenChange, plan = "standard" }: 
                   )}
                 />
 
-                <FormField
-                  control={form.control}
-                  name="voterId"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className={labelClass}>
-                        <IdCard className="h-4 w-4 text-muted-foreground" /> Voter ID <span className="text-destructive">*</span>
-                      </FormLabel>
-                      <FormControl>
-                        <Input placeholder="Voter ID number" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
 
                 <FormField
                   control={form.control}

@@ -5,15 +5,21 @@ export function ScrollToTop() {
   const { pathname, hash } = useLocation();
 
   useEffect(() => {
-    // If there's a hash, scroll to that element
+    // If there's a hash, scroll to that element (retry while lazy content mounts)
     if (hash) {
-      // Small timeout to ensure the DOM has rendered
-      setTimeout(() => {
+      let attempts = 0;
+      const tryScroll = () => {
         const element = document.querySelector(hash);
         if (element) {
           element.scrollIntoView({ behavior: "smooth", block: "start" });
+          return;
         }
-      }, 100);
+        if (attempts < 20) {
+          attempts += 1;
+          setTimeout(tryScroll, 100);
+        }
+      };
+      tryScroll();
     } else {
       // No hash, scroll to top
       window.scrollTo(0, 0);

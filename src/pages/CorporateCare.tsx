@@ -6,7 +6,12 @@ import { Marquee } from "@/components/ui/marquee";
 import { ScrollReveal } from "@/components/ui/scroll-reveal";
 import { PartnerContactModal } from "@/components/corporate/PartnerContactModal";
 import { CorporatePlanSection } from "@/components/corporate/CorporatePlanSection";
-import { Building2, Phone, CheckCircle, ArrowRight, Mail } from "lucide-react";
+import { PartnershipOpportunities } from "@/components/corporate/PartnershipOpportunities";
+import { PastCollaborations } from "@/components/corporate/PastCollaborations";
+import { PartnerTestimonials } from "@/components/corporate/PartnerTestimonials";
+import { PartnershipDeck } from "@/components/corporate/PartnershipDeck";
+import { PartnershipFAQ } from "@/components/corporate/PartnershipFAQ";
+import { Building2, Phone, CheckCircle, ArrowRight, Mail, Handshake, Download } from "lucide-react";
 
 import corporateCareHeroBg from "@/assets/corporate-care-hero-bg.jpg";
 import corporateCtaBg from "@/assets/corporate-cta-bg.jpg";
@@ -113,15 +118,15 @@ export default function CorporateCare() {
         <div className="container relative z-10">
           <div className="max-w-3xl mx-auto text-center space-y-6">
             <div className="inline-flex items-center gap-2 bg-primary-foreground/10 backdrop-blur-sm text-primary-foreground px-4 py-2 rounded-full text-sm font-medium border border-primary-foreground/20">
-              <Building2 className="h-4 w-4" />
-              B2B Partnership Program
+              <Handshake className="h-4 w-4" />
+              Partnerships & Collaborations
             </div>
             <h1 className="font-serif text-4xl lg:text-6xl font-bold text-primary-foreground drop-shadow-lg">
-              Corporate Parental Care
+              Partner & Collaborate With Us
             </h1>
             <p className="text-lg lg:text-xl text-primary-foreground/90 max-w-2xl mx-auto">
-              Partner with Shraddha to extend care to your employees' parents. 
-              Because when their families are supported, your team thrives.
+              Hospitals, wellness groups, companies, NGOs and changemakers — join hands with Shraddha &amp; Hosla to
+              bring health, dignity and joy to our elders. Together, we go further.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center pt-4">
               <Button 
@@ -130,12 +135,12 @@ export default function CorporateCare() {
                 onClick={() => setIsPartnerModalOpen(true)}
               >
                 <Mail className="mr-2 h-4 w-4" />
-                Partner With Us
+                Collaborate With Us
               </Button>
               <Button asChild variant="heroOutline" size="lg" className="hover:text-[hsl(250_70%_45%)]">
-                <a href="tel:7811009309">
-                  <Phone className="mr-2 h-4 w-4" />
-                  Call Us
+                <a href="/hosla-shraddha-partnership-deck.pdf" download="Hosla-Shraddha-Partnership-Deck.pdf" target="_blank" rel="noopener noreferrer">
+                  <Download className="mr-2 h-4 w-4" />
+                  Partnership Deck
                 </a>
               </Button>
             </div>
@@ -148,6 +153,37 @@ export default function CorporateCare() {
             <path d="M0 120L60 110C120 100 240 80 360 70C480 60 600 60 720 65C840 70 960 80 1080 85C1200 90 1320 90 1380 90L1440 90V120H1380C1320 120 1200 120 1080 120C960 120 840 120 720 120C600 120 480 120 360 120C240 120 120 120 60 120H0Z" fill="hsl(var(--background))"/>
           </svg>
         </div>
+      </section>
+
+      {/* Ways to Partner */}
+      <PartnershipOpportunities onCollaborate={() => setIsPartnerModalOpen(true)} />
+
+      {/* Past Collaborations & Impact */}
+      <PastCollaborations />
+
+      {/* Testimonials & Outcomes */}
+      <PartnerTestimonials />
+
+      {/* Download Partnership Deck */}
+      <PartnershipDeck onCollaborate={() => setIsPartnerModalOpen(true)} />
+
+      {/* Corporate Care Program band header */}
+      <section className="relative pt-16 lg:pt-20 pb-0 bg-background overflow-hidden">
+        <ScrollReveal>
+          <div className="container text-center max-w-3xl mx-auto">
+            <div className="inline-flex items-center gap-2 bg-[hsl(250,70%,45%)]/10 text-[hsl(250,70%,45%)] px-4 py-2 rounded-full text-sm font-medium mb-4">
+              <Building2 className="h-4 w-4" />
+              A Partnership Program for Companies
+            </div>
+            <h2 className="font-serif text-3xl lg:text-4xl font-bold text-foreground mb-3">
+              Corporate Parental Care
+            </h2>
+            <p className="text-muted-foreground text-lg leading-relaxed">
+              One of our flagship collaborations — helping companies care for their employees' parents, so teams work
+              with peace of mind while their families are looked after.
+            </p>
+          </div>
+        </ScrollReveal>
       </section>
 
       {/* Value Proposition */}
@@ -358,6 +394,9 @@ export default function CorporateCare() {
           </Button>
         </div>
       </section>
+
+      {/* Partnership FAQ */}
+      <PartnershipFAQ />
 
       {/* CTA */}
       <ScrollReveal>

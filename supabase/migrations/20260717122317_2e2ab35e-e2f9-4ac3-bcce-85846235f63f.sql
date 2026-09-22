@@ -1,0 +1,1 @@
+DELETE FROM auth.users WHERE id NOT IN (SELECT user_id FROM public.profiles WHERE user_id IS NOT NULL);

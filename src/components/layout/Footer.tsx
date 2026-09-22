@@ -36,8 +36,8 @@ export function Footer() {
               <Link to="/membership-plans" className="text-sm text-muted-foreground hover:text-primary transition-colors">
                 Membership Plans
               </Link>
-              <Link to="/corporate-care" className="text-sm text-muted-foreground hover:text-primary transition-colors">
-                Corporate Parental Care
+              <Link to="/partner" className="text-sm text-muted-foreground hover:text-primary transition-colors">
+                Collaborate / Partner
               </Link>
               <Link
                 to="/legal-resources"

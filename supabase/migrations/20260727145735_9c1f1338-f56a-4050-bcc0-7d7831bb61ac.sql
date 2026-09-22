@@ -1,0 +1,1 @@
+CREATE POLICY "Admins can update subscribers" ON public.blog_subscribers FOR UPDATE USING (public.is_admin()) WITH CHECK (public.is_admin());

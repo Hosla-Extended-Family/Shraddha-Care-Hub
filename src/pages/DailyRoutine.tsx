@@ -9,7 +9,7 @@ import {
 import { Clock, MapPin, Radio, Loader2, CalendarDays, Sun } from "lucide-react";
 import { JoinButtons } from "@/components/routine/JoinButtons";
 import {
-  WEEK_DAYS, DAY_LABEL, getISTNow, formatTime12, getLiveSessionId,
+  WEEK_DAYS, DAY_LABEL, getISTNow, formatTime12, getLiveSessionIds, getNextSessionIds,
   hasJoinLink, timeToMinutes, type RoutineSession,
 } from "@/lib/routine";
 import { cn } from "@/lib/utils";
@@ -55,34 +55,43 @@ export default function DailyRoutine() {
     [sessions, selectedDay],
   );
 
-  const liveId = useMemo(
-    () => (isToday ? getLiveSessionId(daySessions, now.minutes) : null),
+  const liveIds = useMemo(
+    () => (isToday ? getLiveSessionIds(daySessions, now.minutes) : []),
     [daySessions, now.minutes, isToday],
   );
+  const liveIdSet = useMemo(() => new Set(liveIds), [liveIds]);
 
-  const liveSession = useMemo(
-    () => daySessions.find((s) => s.id === liveId) ?? null,
-    [daySessions, liveId],
+  const liveSessions = useMemo(
+    () => daySessions.filter((s) => liveIdSet.has(s.id)),
+    [daySessions, liveIdSet],
   );
 
-  // Next upcoming session for today (first session that hasn't started yet).
-  const nextId = useMemo(() => {
-    if (!isToday || liveId) return null;
-    const upcoming = daySessions.find(
-      (s) => (timeToMinutes(s.start_time) ?? 0) > now.minutes,
-    );
-    return upcoming?.id ?? null;
-  }, [daySessions, now.minutes, isToday, liveId]);
+  // Next upcoming session(s) for today (earliest start after now) — only when
+  // nothing is currently live, so users see what to join next without scrolling.
+  const nextIds = useMemo(
+    () => (isToday && liveIds.length === 0 ? getNextSessionIds(daySessions, now.minutes) : []),
+    [daySessions, now.minutes, isToday, liveIds.length],
+  );
+  const nextIdSet = useMemo(() => new Set(nextIds), [nextIds]);
 
-  // On first load, if a session is live today, gently scroll it into view.
+  const nextSessions = useMemo(
+    () => daySessions.filter((s) => nextIdSet.has(s.id)),
+    [daySessions, nextIdSet],
+  );
+
+  // Sessions shown in the top banner: live ones, otherwise the next upcoming.
+  const bannerSessions = liveSessions.length > 0 ? liveSessions : nextSessions;
+  const bannerIsLive = liveSessions.length > 0;
+
+  // On first load, gently scroll the banner (live or next) into view.
   useEffect(() => {
-    if (liveSession && liveRef.current && !hasScrolled.current) {
+    if (bannerSessions.length > 0 && liveRef.current && !hasScrolled.current) {
       hasScrolled.current = true;
       setTimeout(() => {
         liveRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
       }, 400);
     }
-  }, [liveSession]);
+  }, [bannerSessions.length]);
 
   return (
     <Layout>
@@ -162,44 +171,72 @@ export default function DailyRoutine() {
             </div>
           </div>
 
-          {/* Happening now banner */}
-          {liveSession && (
+          {/* Happening now / Up next banner */}
+          {bannerSessions.length > 0 && (
             <ScrollReveal>
               <div
                 ref={liveRef}
-                className="mb-8 rounded-3xl border-2 border-primary bg-primary/5 p-5 lg:p-7 shadow-lg"
+                className={cn(
+                  "mb-8 rounded-3xl border-2 p-5 lg:p-7 shadow-lg",
+                  bannerIsLive ? "border-primary bg-primary/5" : "border-accent bg-accent/30",
+                )}
               >
-                <div className="flex items-center gap-2 mb-3">
-                  <span className="relative flex h-3 w-3">
-                    <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-destructive opacity-75" />
-                    <span className="relative inline-flex h-3 w-3 rounded-full bg-destructive" />
-                  </span>
-                  <span className="text-sm font-bold uppercase tracking-wide text-destructive">
-                    Happening Now
-                  </span>
+                <div className="flex items-center gap-2 mb-4">
+                  {bannerIsLive ? (
+                    <>
+                      <span className="relative flex h-3 w-3">
+                        <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-destructive opacity-75" />
+                        <span className="relative inline-flex h-3 w-3 rounded-full bg-destructive" />
+                      </span>
+                      <span className="text-sm font-bold uppercase tracking-wide text-destructive">
+                        {liveSessions.length > 1 ? "Happening Now · Multiple sessions" : "Happening Now"}
+                      </span>
+                    </>
+                  ) : (
+                    <>
+                      <Radio className="h-4 w-4 text-primary" />
+                      <span className="text-sm font-bold uppercase tracking-wide text-primary">
+                        {nextSessions.length > 1 ? "Up Next · Starting together" : "Up Next"}
+                      </span>
+                    </>
+                  )}
                 </div>
-                <div className="flex items-center gap-2 text-primary font-semibold mb-1">
-                  <Clock className="h-5 w-5" />
-                  {formatTime12(liveSession.start_time)}
-                  {liveSession.end_time && ` – ${formatTime12(liveSession.end_time)}`}
+
+                <div className={cn("grid gap-4", bannerSessions.length > 1 && "sm:grid-cols-2")}>
+                  {bannerSessions.map((s, i) => (
+                    <div
+                      key={s.id}
+                      className={cn(
+                        bannerSessions.length > 1 &&
+                          "rounded-2xl border border-border/60 bg-background/60 p-4",
+                        bannerSessions.length > 1 && i > 0 && "sm:border-l",
+                      )}
+                    >
+                      <div className="flex items-center gap-2 text-primary font-semibold mb-1">
+                        <Clock className="h-5 w-5" />
+                        {formatTime12(s.start_time)}
+                        {s.end_time && ` – ${formatTime12(s.end_time)}`}
+                      </div>
+                      <h2 className="text-xl lg:text-2xl font-bold text-foreground mb-1">
+                        {s.title}
+                      </h2>
+                      {s.title_bn && (
+                        <p className="font-serif text-lg text-muted-foreground mb-2">{s.title_bn}</p>
+                      )}
+                      {s.note && (
+                        <p className="flex items-start gap-1.5 text-sm text-muted-foreground mb-4">
+                          <MapPin className="h-4 w-4 mt-0.5 shrink-0" />
+                          {s.note}
+                        </p>
+                      )}
+                      {hasJoinLink(s) ? (
+                        <JoinButtons session={s} size={bannerSessions.length > 1 ? "md" : "lg"} />
+                      ) : (
+                        <p className="text-sm text-muted-foreground italic">This is an in-person / offline session.</p>
+                      )}
+                    </div>
+                  ))}
                 </div>
-                <h2 className="text-2xl lg:text-3xl font-bold text-foreground mb-1">
-                  {liveSession.title}
-                </h2>
-                {liveSession.title_bn && (
-                  <p className="font-serif text-lg text-muted-foreground mb-2">{liveSession.title_bn}</p>
-                )}
-                {liveSession.note && (
-                  <p className="flex items-start gap-1.5 text-sm text-muted-foreground mb-4">
-                    <MapPin className="h-4 w-4 mt-0.5 shrink-0" />
-                    {liveSession.note}
-                  </p>
-                )}
-                {hasJoinLink(liveSession) ? (
-                  <JoinButtons session={liveSession} size="lg" />
-                ) : (
-                  <p className="text-sm text-muted-foreground italic">This is an in-person / offline session.</p>
-                )}
               </div>
             </ScrollReveal>
           )}
@@ -226,8 +263,8 @@ export default function DailyRoutine() {
           ) : (
             <div className="space-y-4">
               {daySessions.map((s) => {
-                const isLive = s.id === liveId;
-                const isNext = s.id === nextId;
+                const isLive = liveIdSet.has(s.id);
+                const isNext = nextIdSet.has(s.id);
                 const joinable = hasJoinLink(s);
                 return (
                   <div

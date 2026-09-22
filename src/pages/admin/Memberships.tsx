@@ -17,11 +17,13 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 
+
+
 type MembershipApplication = {
   id: string;
   name: string;
   email: string;
-  voter_id: string;
+  
   child_contact: string;
   address: string;
   date_of_birth: string;
@@ -159,6 +161,9 @@ export default function AdminMemberships() {
         <p className="text-muted-foreground">Manage Hosla Membership Card applications and follow-ups.</p>
       </div>
 
+
+
+
       {/* Filters */}
       <Card className="border-border">
         <CardContent className="p-4">
@@ -265,7 +270,7 @@ export default function AdminMemberships() {
 
               {/* Details grid */}
               <div className="grid grid-cols-2 gap-3 text-sm">
-                <Detail icon={<IdCard className="h-4 w-4" />} label="Voter ID" value={selected.voter_id} />
+                
                 <Detail icon={<CalendarDays className="h-4 w-4" />} label="Date of Birth" value={format(new Date(selected.date_of_birth), "MMM d, yyyy")} />
                 <Detail icon={<Droplet className="h-4 w-4" />} label="Blood Group" value={selected.blood_group} />
                 <Detail icon={<Stethoscope className="h-4 w-4" />} label="Major Operation" value={selected.major_operation} />

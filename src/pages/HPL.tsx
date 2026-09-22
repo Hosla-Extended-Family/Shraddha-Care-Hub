@@ -276,9 +276,9 @@ export default function HPL() {
         {/* ─── Back Navigation ─────────────────────────────── */}
         <div className="container pt-6">
           <Button variant="ghost" asChild className="gap-2 text-muted-foreground hover:text-foreground">
-            <Link to="/corporate-care">
+            <Link to="/partner#corporate-plan">
               <ArrowLeft className="h-4 w-4" />
-              Back to Corporate Care
+              Back to Partner Page
             </Link>
           </Button>
         </div>

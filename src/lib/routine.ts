@@ -71,30 +71,81 @@ export function formatTime12(t: string | null): string {
 const DEFAULT_DURATION = 60;
 
 /**
- * Determine which session (if any) is live right now, given the sessions for
- * the current IST day (must be sorted ascending by start_time).
- * A session is live from its start until its end_time, or until the next
- * session begins (capped at DEFAULT_DURATION).
+ * Compute the live window [start, end) in minutes for a single session.
+ * Uses the explicit end_time when present; otherwise falls back to the next
+ * session's start (capped at DEFAULT_DURATION) so a session without an end
+ * time doesn't run indefinitely.
+ */
+function sessionWindow(
+  s: RoutineSession,
+  sorted: RoutineSession[],
+  index: number,
+): { start: number; end: number } | null {
+  const start = timeToMinutes(s.start_time);
+  if (start == null) return null;
+  let end = timeToMinutes(s.end_time);
+  if (end == null) {
+    // Find the next session that starts strictly after this one (skip
+    // simultaneous/overlapping ones so they don't shorten this window to 0).
+    let nextStart: number | null = null;
+    for (let j = index + 1; j < sorted.length; j++) {
+      const ns = timeToMinutes(sorted[j].start_time);
+      if (ns != null && ns > start) {
+        nextStart = ns;
+        break;
+      }
+    }
+    end = nextStart != null ? Math.min(nextStart, start + DEFAULT_DURATION) : start + DEFAULT_DURATION;
+  }
+  return { start, end };
+}
+
+/**
+ * Return the IDs of ALL sessions that are live right now (handles two or more
+ * sessions scheduled simultaneously or with overlapping time windows).
+ */
+export function getLiveSessionIds(
+  sessions: RoutineSession[],
+  nowMinutes: number,
+): string[] {
+  const sorted = [...sessions].sort(
+    (a, b) => (timeToMinutes(a.start_time) ?? 0) - (timeToMinutes(b.start_time) ?? 0),
+  );
+  const ids: string[] = [];
+  for (let i = 0; i < sorted.length; i++) {
+    const w = sessionWindow(sorted[i], sorted, i);
+    if (w && nowMinutes >= w.start && nowMinutes < w.end) ids.push(sorted[i].id);
+  }
+  return ids;
+}
+
+/**
+ * Determine which single session (if any) is live right now. Kept for
+ * backwards compatibility — prefer getLiveSessionIds for overlap handling.
  */
 export function getLiveSessionId(
   sessions: RoutineSession[],
   nowMinutes: number,
 ): string | null {
-  const sorted = [...sessions].sort(
-    (a, b) => (timeToMinutes(a.start_time) ?? 0) - (timeToMinutes(b.start_time) ?? 0),
-  );
-  for (let i = 0; i < sorted.length; i++) {
-    const s = sorted[i];
-    const start = timeToMinutes(s.start_time);
-    if (start == null) continue;
-    let end = timeToMinutes(s.end_time);
-    if (end == null) {
-      const nextStart = i + 1 < sorted.length ? timeToMinutes(sorted[i + 1].start_time) : null;
-      end = nextStart != null ? Math.min(nextStart, start + DEFAULT_DURATION) : start + DEFAULT_DURATION;
-    }
-    if (nowMinutes >= start && nowMinutes < end) return s.id;
-  }
-  return null;
+  return getLiveSessionIds(sessions, nowMinutes)[0] ?? null;
+}
+
+/**
+ * Return the IDs of the next upcoming session(s) for the day — the earliest
+ * start time strictly after `nowMinutes`. Returns all sessions sharing that
+ * same earliest start time (handles simultaneous upcoming sessions).
+ */
+export function getNextSessionIds(
+  sessions: RoutineSession[],
+  nowMinutes: number,
+): string[] {
+  const upcoming = sessions
+    .map((s) => ({ id: s.id, start: timeToMinutes(s.start_time) }))
+    .filter((s): s is { id: string; start: number } => s.start != null && s.start > nowMinutes)
+    .sort((a, b) => a.start - b.start);
+  if (upcoming.length === 0) return [];
+  const earliest = upcoming[0].start;
+  return upcoming.filter((s) => s.start === earliest).map((s) => s.id);
 }
 
 export function hasJoinLink(s: RoutineSession): boolean {

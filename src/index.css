@@ -158,3 +158,55 @@ All colors MUST be HSL.
     @apply bg-background text-foreground;
   }
 }
+
+/* ============================================================
+   Site-wide Accessibility mode (toggled from the header menu)
+   ============================================================ */
+html.a11y-large {
+  font-size: 18px;
+}
+html.a11y-large body { line-height: 1.7; }
+html.a11y-large p,
+html.a11y-large li,
+html.a11y-large label,
+html.a11y-large input,
+html.a11y-large textarea,
+html.a11y-large button,
+html.a11y-large a { font-size: 1.05em; }
+html.a11y-large button,
+html.a11y-large a[role="button"] { min-height: 48px; }
+
+html.a11y-contrast {
+  --background: 0 0% 100%;
+  --foreground: 0 0% 0%;
+  --card: 0 0% 100%;
+  --card-foreground: 0 0% 0%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 0 0% 0%;
+  --muted: 0 0% 90%;
+  --muted-foreground: 0 0% 15%;
+  --border: 0 0% 20%;
+  --input: 0 0% 20%;
+  --ring: 161 93% 20%;
+  --primary: 161 93% 22%;
+  --primary-foreground: 0 0% 100%;
+}
+html.a11y-contrast body { font-weight: 500; }
+html.a11y-contrast *:focus-visible {
+  outline: 3px solid hsl(var(--primary)) !important;
+  outline-offset: 2px;
+}
+html.a11y-contrast a { text-decoration: underline; }
+html.a11y-contrast .text-muted-foreground { color: hsl(0 0% 20%); }
+
+/* Rich blog editor - placeholder + baseline styles */
+.rich-editor:empty:before,
+.rich-editor > p:only-child:empty:before {
+  content: attr(data-placeholder);
+  color: hsl(var(--muted-foreground));
+  pointer-events: none;
+}
+.rich-editor p { margin: 0 0 0.75em; }
+.rich-editor p:last-child { margin-bottom: 0; }
+.rich-editor ul { list-style: disc; padding-left: 1.5rem; margin: 0.5em 0; }
+.rich-editor strong { font-weight: 700; }

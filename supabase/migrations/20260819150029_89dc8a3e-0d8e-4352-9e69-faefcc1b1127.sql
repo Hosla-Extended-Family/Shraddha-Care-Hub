@@ -1,0 +1,1 @@
+UPDATE public.profiles SET membership_id = 'SUJA6931', updated_at = now() WHERE user_id = '4d0a24a0-7779-4f06-9412-18147b808e94' AND membership_id IS NULL;

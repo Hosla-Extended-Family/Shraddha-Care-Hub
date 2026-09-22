@@ -9,11 +9,13 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Heart, Search, Eye, Users, IndianRupee, Calendar, Mail, Phone, Check, X, Clock, CheckCircle, XCircle } from "lucide-react";
+import { Heart, Search, Eye, Users, IndianRupee, Calendar, Mail, Phone, Check, X, Clock, CheckCircle, XCircle, Plus } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
 import { format } from "date-fns";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
 
 interface Donation {
   id: string;
@@ -46,6 +48,17 @@ export default function AdminDonations() {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [adminNotes, setAdminNotes] = useState("");
+  const [isManualEntryOpen, setIsManualEntryOpen] = useState(false);
+  const [manualDonation, setManualDonation] = useState({
+    name: "",
+    email: "",
+    phone: "",
+    pan_card: "",
+    amount: "",
+    consent_to_publish: false,
+    admin_notes: "Manual entry by Admin",
+    status: "verified" as const
+  });
 
   const { data: donations, isLoading } = useQuery({
     queryKey: ["admin-donations"],
@@ -101,6 +114,47 @@ export default function AdminDonations() {
       toast({ title: "Error", description: "Failed to save notes.", variant: "destructive" });
     },
   });
+
+  const addDonationMutation = useMutation({
+    mutationFn: async (newDonation: Omit<Donation, 'id' | 'created_at'>) => {
+      const { error } = await supabase
+        .from("donations")
+        .insert([newDonation]);
+      
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-donations"] });
+      queryClient.invalidateQueries({ queryKey: ["consented-donors"] });
+      toast({ 
+        title: "Success",
+        description: "Manual donation entry added successfully.",
+      });
+      setIsManualEntryOpen(false);
+      setManualDonation({
+        name: "",
+        email: "",
+        phone: "",
+        pan_card: "",
+        amount: "",
+        consent_to_publish: false,
+        admin_notes: "Manual entry by Admin",
+        status: "verified"
+      });
+    },
+    onError: (error: any) => {
+      toast({ title: "Error", description: error.message || "Failed to add donation.", variant: "destructive" });
+    },
+  });
+
+  const handleAddManualDonation = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!manualDonation.name || !manualDonation.amount) {
+      toast({ title: "Error", description: "Name and Amount are required.", variant: "destructive" });
+      return;
+    }
+    addDonationMutation.mutate(manualDonation);
+  };
 
   // Group donations by email
   const donorGroups: DonorGroup[] = donations ? 
@@ -189,9 +243,126 @@ export default function AdminDonations() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="font-serif text-3xl font-bold text-foreground">Donations</h1>
-        <p className="text-muted-foreground">Verify donations and manage donor recognition.</p>
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div>
+          <h1 className="font-serif text-3xl font-bold text-foreground">Donations</h1>
+          <p className="text-muted-foreground">Verify donations and manage donor recognition.</p>
+        </div>
+
+        <Dialog open={isManualEntryOpen} onOpenChange={setIsManualEntryOpen}>
+          <DialogTrigger asChild>
+            <Button className="shrink-0 gap-2">
+              <Plus className="h-4 w-4" />
+              Manual Entry
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="sm:max-w-[500px]">
+            <DialogHeader>
+              <DialogTitle className="font-serif">Add Manual Donation</DialogTitle>
+              <DialogDescription>
+                Directly add a donation that bypassed the website form (e.g., bank transfer, cash).
+              </DialogDescription>
+            </DialogHeader>
+            <form onSubmit={handleAddManualDonation} className="space-y-4 pt-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="donorName">Name *</Label>
+                  <Input 
+                    id="donorName" 
+                    value={manualDonation.name} 
+                    onChange={e => setManualDonation({...manualDonation, name: e.target.value})} 
+                    required 
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="amount">Amount (₹) *</Label>
+                  <Input 
+                    id="amount" 
+                    type="number" 
+                    min="1" 
+                    value={manualDonation.amount} 
+                    onChange={e => setManualDonation({...manualDonation, amount: e.target.value})} 
+                    required 
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="email">Email</Label>
+                  <Input 
+                    id="email" 
+                    type="email" 
+                    value={manualDonation.email} 
+                    onChange={e => setManualDonation({...manualDonation, email: e.target.value})} 
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="phone">Phone</Label>
+                  <Input 
+                    id="phone" 
+                    value={manualDonation.phone} 
+                    onChange={e => setManualDonation({...manualDonation, phone: e.target.value})} 
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="pan">PAN Card</Label>
+                  <Input 
+                    id="pan" 
+                    value={manualDonation.pan_card} 
+                    onChange={e => setManualDonation({...manualDonation, pan_card: e.target.value})} 
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="status">Status</Label>
+                  <Select 
+                    value={manualDonation.status} 
+                    onValueChange={(val: any) => setManualDonation({...manualDonation, status: val})}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select Status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="verified">Verified</SelectItem>
+                      <SelectItem value="pending">Pending</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              
+              <div className="flex items-center space-x-2 py-2">
+                <Checkbox 
+                  id="consent" 
+                  checked={manualDonation.consent_to_publish}
+                  onCheckedChange={(checked) => setManualDonation({...manualDonation, consent_to_publish: checked === true})}
+                />
+                <Label htmlFor="consent" className="cursor-pointer text-sm font-normal">
+                  Consent to publish name on Wall of Thanks
+                </Label>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="admin_notes">Admin Notes</Label>
+                <Textarea 
+                  id="admin_notes" 
+                  value={manualDonation.admin_notes} 
+                  onChange={e => setManualDonation({...manualDonation, admin_notes: e.target.value})} 
+                  rows={2}
+                />
+              </div>
+              
+              <div className="flex justify-end pt-4 gap-2 border-t">
+                <Button type="button" variant="outline" onClick={() => setIsManualEntryOpen(false)}>
+                  Cancel
+                </Button>
+                <Button type="submit" disabled={addDonationMutation.isPending}>
+                  {addDonationMutation.isPending ? "Saving..." : "Save Donation"}
+                </Button>
+              </div>
+            </form>
+          </DialogContent>
+        </Dialog>
       </div>
 
       {/* Stats Cards */}

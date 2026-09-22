@@ -5,10 +5,11 @@ import { Layout } from "@/components/layout/Layout";
 import { ScrollReveal } from "@/components/ui/scroll-reveal";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ExternalLink, Calendar, Loader2, MapPin, ChevronRight, ArrowRight } from "lucide-react";
+import { Calendar, Loader2, MapPin } from "lucide-react";
 import { Link } from "react-router-dom";
 import { format } from "date-fns";
 import type { Database } from "@/integrations/supabase/types";
+import { EventCtaButtons } from "@/components/events/EventCtaButtons";
 
 type EventRow = Database["public"]["Tables"]["registration_events"]["Row"];
 type ProjectStatus = Database["public"]["Enums"]["project_status"];
@@ -37,50 +38,9 @@ function getOrgLabel(org: OrganizationType) {
 }
 
 function EventCta({ event }: { event: EventRow }) {
-  const canRegister = event.enable_registration && event.registration_open;
-  if (canRegister) {
-    return (
-      <Button
-        asChild
-        size="sm"
-        className="w-full mt-auto"
-      >
-        <Link to={`/register/${event.slug}`}>
-          <ArrowRight className="h-4 w-4 mr-2" />
-          Register
-        </Link>
-      </Button>
-    );
-  }
-  if (event.resource_link) {
-    return event.resource_link.startsWith("/") ? (
-      <Button
-        asChild
-        variant="outline"
-        size="sm"
-        className="w-full mt-auto border-[hsl(250,70%,45%)]/30 text-[hsl(250,70%,45%)] hover:bg-[hsl(250,70%,45%)] hover:text-white"
-      >
-        <Link to={event.resource_link}>
-          <ChevronRight className="h-4 w-4 mr-2" />
-          Know More
-        </Link>
-      </Button>
-    ) : (
-      <Button
-        asChild
-        variant="outline"
-        size="sm"
-        className="w-full mt-auto border-[hsl(250,70%,45%)]/30 text-[hsl(250,70%,45%)] hover:bg-[hsl(250,70%,45%)] hover:text-white"
-      >
-        <a href={event.resource_link} target="_blank" rel="noopener noreferrer">
-          <ExternalLink className="h-4 w-4 mr-2" />
-          Learn More
-        </a>
-      </Button>
-    );
-  }
-  return null;
+  return <EventCtaButtons event={event} />;
 }
+
 
 export default function Events() {
   const [activeFilter, setActiveFilter] = useState<ProjectStatus | "all">("all");

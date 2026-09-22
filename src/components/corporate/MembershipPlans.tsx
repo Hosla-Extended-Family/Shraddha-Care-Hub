@@ -373,7 +373,7 @@ export function MembershipPlans() {
                     size="lg"
                     className="flex-shrink-0 bg-[hsl(250,70%,45%)] hover:bg-[hsl(250,70%,40%)] text-white group"
                   >
-                    <Link to="/corporate-care">
+                    <Link to="/partner#corporate-plan">
                       Explore Corporate Care
                       <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
                     </Link>

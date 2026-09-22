@@ -20,7 +20,9 @@ import { ImageUpload } from "@/components/ui/image-upload";
 import { useImageUpload } from "@/hooks/use-image-upload";
 import { Plus, Pencil, Trash2, Loader2, ExternalLink, Copy, X } from "lucide-react";
 import { format } from "date-fns";
-import type { Database } from "@/integrations/supabase/types";
+import type { Database, Json } from "@/integrations/supabase/types";
+import { EventGalleryEditor } from "@/components/admin/EventGalleryEditor";
+import { parseGallery, type EventMediaItem } from "@/lib/event-media";
 
 type RegEvent = Database["public"]["Tables"]["registration_events"]["Row"];
 type ProjectStatus = Database["public"]["Enums"]["project_status"];
@@ -82,12 +84,18 @@ interface FormState {
   venue_address: string;
   contact_phone: string;
   banner_url: string;
+  gallery: EventMediaItem[];
   field_config: FieldConfig;
   enable_registration: boolean;
   registration_open: boolean;
+  is_paid: boolean;
+  price_inr: number;
+  members_free: boolean;
+  payment_note: string;
   is_published: boolean;
   display_order: number;
 }
+
 
 const defaultForm: FormState = {
   slug: "",
@@ -105,9 +113,15 @@ const defaultForm: FormState = {
   venue_address: "",
   contact_phone: "",
   banner_url: "",
+  gallery: [],
   field_config: defaultFieldConfig,
   enable_registration: false,
   registration_open: true,
+  is_paid: false,
+  price_inr: 0,
+  members_free: true,
+  payment_note: "",
+
   is_published: false,
   display_order: 0,
 };
@@ -175,9 +189,15 @@ export default function AdminEventManagement() {
     venue_address: data.venue_address || null,
     contact_phone: data.contact_phone || null,
     banner_url: data.banner_url || null,
+    gallery: data.gallery as unknown as Json,
     field_config: data.field_config as unknown as Database["public"]["Tables"]["registration_events"]["Insert"]["field_config"],
     enable_registration: data.enable_registration,
     registration_open: data.registration_open,
+    is_paid: data.enable_registration && data.is_paid,
+    price_inr: data.is_paid ? Math.max(0, Math.round(data.price_inr)) : 0,
+    members_free: data.members_free,
+    payment_note: data.payment_note || null,
+
     is_published: data.is_published,
     display_order: data.display_order,
   };
@@ -253,9 +273,15 @@ export default function AdminEventManagement() {
       venue_address: ev.venue_address || "",
       contact_phone: ev.contact_phone || "",
       banner_url: ev.banner_url || "",
+      gallery: parseGallery(ev.gallery),
       field_config: { ...defaultFieldConfig, ...((ev.field_config as Partial<FieldConfig>) || {}) },
       enable_registration: ev.enable_registration,
       registration_open: ev.registration_open,
+      is_paid: ev.is_paid,
+      price_inr: ev.price_inr ?? 0,
+      members_free: ev.members_free,
+      payment_note: ev.payment_note || "",
+
       is_published: ev.is_published,
       display_order: ev.display_order,
     });
@@ -517,6 +543,11 @@ export default function AdminEventManagement() {
               />
             </div>
 
+            <EventGalleryEditor
+              value={form.gallery}
+              onChange={(gallery) => setForm({ ...form, gallery })}
+            />
+
             <div className="grid grid-cols-2 gap-4">
               <div className="flex items-center justify-between rounded-lg border border-border p-3">
                 <Label htmlFor="published">Published</Label>
@@ -545,7 +576,65 @@ export default function AdminEventManagement() {
                     <Switch id="reg_open" checked={form.registration_open} onCheckedChange={(v) => setForm({ ...form, registration_open: v })} />
                   </div>
 
+                  {/* Paid entry */}
+                  <div className="rounded-lg border border-border p-4 space-y-4">
+                    <div className="flex items-center justify-between gap-3">
+                      <div>
+                        <Label className="text-base">Paid Event</Label>
+                        <p className="text-xs text-muted-foreground">
+                          Charge non-members a registration fee via Stripe.
+                        </p>
+                      </div>
+                      <Switch
+                        checked={form.is_paid}
+                        onCheckedChange={(v) => setForm({ ...form, is_paid: v })}
+                      />
+                    </div>
+
+                    {form.is_paid && (
+                      <div className="space-y-4 border-t border-border/60 pt-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="price_inr">Fee for non-members (₹)</Label>
+                          <Input
+                            id="price_inr"
+                            type="number"
+                            min={1}
+                            value={form.price_inr}
+                            onChange={(e) => setForm({ ...form, price_inr: parseInt(e.target.value) || 0 })}
+                            placeholder="e.g. 200"
+                          />
+                        </div>
+
+                        <div className="flex items-center justify-between rounded-lg border border-border p-3">
+                          <div>
+                            <Label htmlFor="members_free">Free for Hosla members</Label>
+                            <p className="text-xs text-muted-foreground">
+                              Approved members skip payment automatically.
+                            </p>
+                          </div>
+                          <Switch
+                            id="members_free"
+                            checked={form.members_free}
+                            onCheckedChange={(v) => setForm({ ...form, members_free: v })}
+                          />
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label htmlFor="payment_note">Note shown on the payment prompt</Label>
+                          <Textarea
+                            id="payment_note"
+                            rows={2}
+                            value={form.payment_note}
+                            onChange={(e) => setForm({ ...form, payment_note: e.target.value })}
+                            placeholder="e.g. Fee covers lunch, materials and the activity kit."
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
                   <p className="text-xs text-muted-foreground">Public link: /register/{form.slug || "your-slug"}</p>
+
 
                   <div className="grid grid-cols-2 gap-3">
                     <div className="space-y-2">

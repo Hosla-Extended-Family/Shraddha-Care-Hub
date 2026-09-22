@@ -1,0 +1,1 @@
+ALTER TABLE public.membership_applications ALTER COLUMN voter_id DROP NOT NULL;

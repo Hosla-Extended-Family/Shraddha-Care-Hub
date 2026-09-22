@@ -3,6 +3,11 @@ import { Link, useLocation } from "react-router-dom";
 import { Heart, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { AccessibilityMenu } from "@/hooks/use-a11y";
+import { NotificationBell } from "@/components/blog/NotificationBell";
+import { UserMenu } from "@/components/layout/UserMenu";
+import { MobileAccountLinks } from "@/components/layout/MobileAccountLinks";
+import { useSessionProfile } from "@/hooks/use-session-profile";
 import logoShraddha from "@/assets/logo-shraddha.png";
 
 interface NavChild {
@@ -31,9 +36,11 @@ const navGroups: NavGroup[] = [
     name: "Explore Care Plans",
     children: [
       { name: "Membership Plans", path: "/membership-plans", description: "Explore our care plans and corporate initiatives", accent: "pink" },
-      { name: "Corporate Care", path: "/corporate-care", description: "Programs for your employees' parents", accent: "violet" },
+      { name: "Corporate Care", path: "/partner#corporate-plan", description: "Programs for your employees' parents", accent: "violet" },
     ],
   },
+  { name: "Collaborate / Partner", path: "/partner" },
+  { name: "Blogs", path: "/blog" },
   {
     name: "Projects & Events",
     children: [
@@ -64,6 +71,15 @@ function isGroupActive(group: NavGroup, pathname: string, hash: string): boolean
     }
     return pathname === c.path;
   }) ?? false;
+}
+
+function isChildActive(child: NavChild, pathname: string, hash: string): boolean {
+  if (child.path.includes('#')) {
+    const [p, h] = child.path.split('#');
+    return pathname === p && hash === `#${h}`;
+  }
+  // Plain path: active only when there is no hash (so hash siblings don't both light up)
+  return pathname === child.path && !hash;
 }
 
 const accentStyles = {
@@ -133,8 +149,8 @@ function DesktopDropdown({ group }: { group: NavGroup }) {
               className={cn(
                 "block px-3 py-2.5 rounded-lg transition-colors",
                 a
-                  ? location.pathname === child.path ? a.active : a.idle
-                  : location.pathname === child.path
+                  ? isChildActive(child, location.pathname, location.hash) ? a.active : a.idle
+                  : isChildActive(child, location.pathname, location.hash)
                     ? "bg-primary/10 text-primary"
                     : "text-foreground hover:bg-accent"
               )}
@@ -154,6 +170,7 @@ export function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [expandedGroup, setExpandedGroup] = useState<string | null>(null);
   const location = useLocation();
+  const { signedIn } = useSessionProfile();
 
   useEffect(() => {
     setIsMenuOpen(false);
@@ -182,24 +199,32 @@ export function Header() {
             {navGroups.map((group) => (
               <DesktopDropdown key={group.name} group={group} />
             ))}
+            <NotificationBell />
+            <AccessibilityMenu />
+            <UserMenu />
             <Button asChild size="sm">
               <Link to="/donate">Support Us</Link>
             </Button>
           </nav>
 
-          {/* Mobile Menu Button */}
-          <button
-            className="lg:hidden relative z-[60] w-12 h-12 flex items-center justify-center rounded-lg transition-colors hover:bg-accent active:bg-accent/80 touch-manipulation"
-            onClick={() => setIsMenuOpen(!isMenuOpen)}
-            aria-label={isMenuOpen ? "Close menu" : "Open menu"}
-            aria-expanded={isMenuOpen}
-          >
-            <div className="relative w-6 h-5 flex flex-col justify-between">
-              <span className={cn("block h-0.5 w-6 bg-foreground rounded-full transition-all duration-300 ease-in-out origin-center", isMenuOpen && "rotate-45 translate-y-[9px]")} />
-              <span className={cn("block h-0.5 w-6 bg-foreground rounded-full transition-all duration-300 ease-in-out", isMenuOpen && "opacity-0 scale-x-0")} />
-              <span className={cn("block h-0.5 w-6 bg-foreground rounded-full transition-all duration-300 ease-in-out origin-center", isMenuOpen && "-rotate-45 -translate-y-[9px]")} />
-            </div>
-          </button>
+          {/* Mobile actions */}
+          <div className="lg:hidden flex items-center gap-1">
+            <NotificationBell />
+            <AccessibilityMenu />
+            {signedIn && <UserMenu className="mr-1" />}
+            <button
+              className="relative z-[60] w-12 h-12 flex items-center justify-center rounded-lg transition-colors hover:bg-accent active:bg-accent/80 touch-manipulation"
+              onClick={() => setIsMenuOpen(!isMenuOpen)}
+              aria-label={isMenuOpen ? "Close menu" : "Open menu"}
+              aria-expanded={isMenuOpen}
+            >
+              <div className="relative w-6 h-5 flex flex-col justify-between">
+                <span className={cn("block h-0.5 w-6 bg-foreground rounded-full transition-all duration-300 ease-in-out origin-center", isMenuOpen && "rotate-45 translate-y-[9px]")} />
+                <span className={cn("block h-0.5 w-6 bg-foreground rounded-full transition-all duration-300 ease-in-out", isMenuOpen && "opacity-0 scale-x-0")} />
+                <span className={cn("block h-0.5 w-6 bg-foreground rounded-full transition-all duration-300 ease-in-out origin-center", isMenuOpen && "-rotate-45 -translate-y-[9px]")} />
+              </div>
+            </button>
+          </div>
         </div>
       </header>
 
@@ -271,8 +296,8 @@ export function Header() {
                           className={cn(
                             "flex flex-col px-4 py-3 rounded-lg transition-colors touch-manipulation",
                             a
-                              ? location.pathname === child.path ? a.active : a.idle
-                              : location.pathname === child.path
+                              ? isChildActive(child, location.pathname, location.hash) ? a.active : a.idle
+                              : isChildActive(child, location.pathname, location.hash)
                                 ? "bg-primary/10 text-primary"
                                 : "text-foreground hover:bg-accent"
                           )}
@@ -298,7 +323,8 @@ export function Header() {
             )}
             style={{ transitionDelay: isMenuOpen ? `${navGroups.length * 50 + 100}ms` : "0ms" }}
           >
-            <Button asChild size="lg" className="w-full h-14 text-base">
+            <MobileAccountLinks onNavigate={() => setIsMenuOpen(false)} />
+            <Button asChild size="lg" className="w-full h-14 text-base mt-3">
               <Link to="/donate" onClick={() => setIsMenuOpen(false)}>
                 <Heart className="mr-2 h-5 w-5" />
                 Support Us

@@ -147,12 +147,14 @@ export default function AdminRegistrations() {
 
   const exportCSV = () => {
     if (!registrations?.length) return;
-    const headers = ["Name", "Mobile", "Email", "Age", "Area", "Medical Concerns", "Source", "Checked In", "Registered At"];
+    const headers = ["Name", "Mobile", "Email", "Age", "Area", "Medical Concerns", "Source", "Checked In", "Hosla Member", "Payment", "Amount (₹)", "Registered At"];
     const rows = registrations.map((r) => [
       r.full_name, r.mobile, r.email, r.age, r.area,
       r.medical_concerns || "", r.source, r.checked_in ? "Yes" : "No",
+      r.is_member ? "Yes" : "No", r.payment_status, r.amount_inr ?? "",
       format(new Date(r.created_at), "PPp"),
     ]);
+
     const csv = [headers, ...rows].map((row) => row.map((c) => `"${c}"`).join(",")).join("\n");
     const blob = new Blob([csv], { type: "text/csv" });
     const url = URL.createObjectURL(blob);
@@ -326,7 +328,23 @@ export default function AdminRegistrations() {
                       <Badge variant={reg.checked_in ? "default" : "secondary"} className="text-xs">
                         {reg.checked_in ? "Checked In" : "Registered"}
                       </Badge>
+                      {reg.is_member && (
+                        <Badge variant="outline" className="text-xs border-primary/40 text-primary">
+                          Hosla Member
+                        </Badge>
+                      )}
+                      {reg.payment_status === "paid" && (
+                        <Badge variant="outline" className="text-xs border-primary/40 text-primary">
+                          Paid ₹{(reg.amount_inr ?? 0).toLocaleString("en-IN")}
+                        </Badge>
+                      )}
+                      {reg.payment_status === "pending" && (
+                        <Badge variant="outline" className="text-xs border-destructive/40 text-destructive">
+                          Payment pending
+                        </Badge>
+                      )}
                       {reg.age > 0 && <span className="text-xs text-muted-foreground">Age: {reg.age}</span>}
+
                     </div>
                     <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted-foreground">
                       <span>{reg.mobile}</span>

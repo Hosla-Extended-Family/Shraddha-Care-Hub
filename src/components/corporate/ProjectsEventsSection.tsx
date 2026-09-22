@@ -4,10 +4,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { ScrollReveal } from "@/components/ui/scroll-reveal";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ExternalLink, Calendar, Loader2, MapPin, ChevronRight, ArrowRight } from "lucide-react";
+import { Calendar, Loader2, MapPin, ArrowRight } from "lucide-react";
 import { Link } from "react-router-dom";
 import { format } from "date-fns";
 import type { Database } from "@/integrations/supabase/types";
+import { EventCtaButtons } from "@/components/events/EventCtaButtons";
 import { useIsMobile } from "@/hooks/use-mobile";
 import {
   Carousel,
@@ -204,44 +205,8 @@ const ProjectEventCard = ({
             </div>
           )}
 
-          {event.enable_registration && event.registration_open ? (
-            <Button
-              asChild
-              size="sm"
-              className="w-full mt-auto"
-            >
-              <Link to={`/register/${event.slug}`}>
-                <ArrowRight className="h-4 w-4 mr-2" />
-                Register
-              </Link>
-            </Button>
-          ) : event.resource_link ? (
-            event.resource_link.startsWith("/") ? (
-              <Button
-                asChild
-                variant="outline"
-                size="sm"
-                className="w-full mt-auto border-[hsl(250,70%,45%)]/30 text-[hsl(250,70%,45%)] hover:bg-[hsl(250,70%,45%)] hover:text-white"
-              >
-                <Link to={event.resource_link}>
-                  <ChevronRight className="h-4 w-4 mr-2" />
-                  Know More
-                </Link>
-              </Button>
-            ) : (
-              <Button
-                asChild
-                variant="outline"
-                size="sm"
-                className="w-full mt-auto border-[hsl(250,70%,45%)]/30 text-[hsl(250,70%,45%)] hover:bg-[hsl(250,70%,45%)] hover:text-white"
-              >
-                <a href={event.resource_link} target="_blank" rel="noopener noreferrer">
-                  <ExternalLink className="h-4 w-4 mr-2" />
-                  Learn More
-                </a>
-              </Button>
-            )
-          ) : null}
+          <EventCtaButtons event={event} />
+
         </div>
       </div>
     </ScrollReveal>
@@ -262,21 +227,21 @@ export function ProjectsEventsSection({ limit, showViewAll = false }: ProjectsEv
   const { data: events = [], isLoading } = useQuery({
     queryKey: ["public-registration-events", limit],
     queryFn: async () => {
-      let query = supabase
+      const { data, error } = await supabase
         .from("registration_events")
         .select("*")
         .eq("is_published", true)
-        .neq("status", "completed")
         .order("display_order", { ascending: true })
-        .order("event_date", { ascending: true });
-
-      if (limit) query = query.limit(limit);
-
-      const { data, error } = await query;
+        .order("event_date", { ascending: false });
       if (error) throw error;
-      return data as ProjectEvent[];
+
+      // Show upcoming & ongoing first, then completed (past) events to keep visitors engaged.
+      const rank: Record<ProjectStatus, number> = { upcoming: 0, ongoing: 1, completed: 2 };
+      const sorted = [...(data as ProjectEvent[])].sort((a, b) => rank[a.status] - rank[b.status]);
+      return limit ? sorted.slice(0, limit) : sorted;
     },
   });
+
 
   // Track current slide
   useEffect(() => {
@@ -316,17 +281,20 @@ export function ProjectsEventsSection({ limit, showViewAll = false }: ProjectsEv
   const getStatusBadge = (status: ProjectStatus) => {
     if (status === "upcoming") {
       return (
-        <Badge 
-          className="bg-purple-100 text-purple-800 border-purple-300 hover:bg-purple-100"
-        >
+        <Badge className="bg-purple-100 text-purple-800 border-purple-300 hover:bg-purple-100">
           Upcoming
         </Badge>
       );
     }
+    if (status === "completed") {
+      return (
+        <Badge className="bg-gray-100 text-gray-700 border-gray-300 hover:bg-gray-100">
+          Past Event
+        </Badge>
+      );
+    }
     return (
-      <Badge 
-        className="bg-blue-100 text-blue-800 border-blue-300 hover:bg-blue-100"
-      >
+      <Badge className="bg-blue-100 text-blue-800 border-blue-300 hover:bg-blue-100">
         Ongoing
       </Badge>
     );
@@ -377,7 +345,7 @@ export function ProjectsEventsSection({ limit, showViewAll = false }: ProjectsEv
               Our Projects & Events
             </h2>
             <p className="text-muted-foreground max-w-2xl mx-auto">
-              Explore our upcoming and ongoing initiatives dedicated to elder care and community welfare.
+              Explore our upcoming initiatives and relive the moments from our past events dedicated to elder care and community welfare.
             </p>
           </div>
         </ScrollReveal>
