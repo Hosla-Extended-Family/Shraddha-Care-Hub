@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { Heart, ChevronDown } from "lucide-react";
+import { Heart, ChevronDown, Languages } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { AccessibilityMenu } from "@/hooks/use-a11y";
@@ -8,7 +8,27 @@ import { NotificationBell } from "@/components/blog/NotificationBell";
 import { UserMenu } from "@/components/layout/UserMenu";
 import { MobileAccountLinks } from "@/components/layout/MobileAccountLinks";
 import { useSessionProfile } from "@/hooks/use-session-profile";
+import { useI18n } from "@/i18n";
 import logoShraddha from "@/assets/logo-shraddha.png";
+
+export function LanguageSwitcher({ className }: { className?: string }) {
+  const { lang, setLang } = useI18n();
+  return (
+    <button
+      type="button"
+      onClick={() => setLang(lang === "en" ? "bn" : "en")}
+      aria-label="Switch Language / ভাষা পরিবর্তন"
+      title={lang === "en" ? "Switch to বাংলা" : "Switch to English"}
+      className={cn(
+        "inline-flex items-center gap-1.5 h-9 px-2.5 sm:px-3 rounded-full border border-border bg-background hover:bg-accent text-xs font-semibold text-foreground transition-all active:scale-95 shadow-sm touch-manipulation",
+        className
+      )}
+    >
+      <Languages className="h-3.5 w-3.5 text-primary shrink-0" />
+      <span>{lang === "en" ? "বাংলা" : "English"}</span>
+    </button>
+  );
+}
 
 interface NavChild {
   name: string;
@@ -201,6 +221,7 @@ export function Header() {
             ))}
             <NotificationBell />
             <AccessibilityMenu />
+            <LanguageSwitcher />
             <UserMenu />
             <Button asChild size="sm">
               <Link to="/donate">Support Us</Link>
@@ -210,6 +231,7 @@ export function Header() {
           {/* Mobile actions */}
           <div className="lg:hidden flex items-center gap-1">
             <NotificationBell />
+            <LanguageSwitcher className="h-8 px-2 text-[11px]" />
             <AccessibilityMenu />
             {signedIn && <UserMenu className="mr-1" />}
             <button

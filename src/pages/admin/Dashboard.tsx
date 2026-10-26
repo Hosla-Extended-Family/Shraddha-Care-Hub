@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate, Link, Outlet, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { LayoutDashboard, FileText, Users, Settings, LogOut, Loader2, Menu, X, UsersRound, Building2, MessageSquare, Heart, CalendarDays, ClipboardList, IdCard, CalendarClock, Share2, Handshake, BookOpen, Newspaper, UserCheck, Mail, ShieldCheck, HandCoins } from "lucide-react";
+import { LayoutDashboard, FileText, Users, Settings, LogOut, Loader2, Menu, X, UsersRound, Building2, MessageSquare, Heart, CalendarDays, ClipboardList, IdCard, CalendarClock, Share2, Handshake, BookOpen, Newspaper, UserCheck, Mail, ShieldCheck, HandCoins, type LucideIcon } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -82,7 +82,7 @@ export default function AdminDashboard() {
     navigate("/admin/login");
   };
 
-  const navItems: { icon: any; label: string; path: string; badge?: number }[] = [
+  const navItems: { icon: LucideIcon; label: string; path: string; badge?: number }[] = [
     { icon: LayoutDashboard, label: "Overview", path: "/admin/dashboard" },
     { icon: UserCheck, label: "Writers", path: "/admin/dashboard/writers", badge: pendingWriters },
     { icon: BookOpen, label: "Blog Moderation", path: "/admin/dashboard/blogs", badge: pendingBlogs },
@@ -93,6 +93,7 @@ export default function AdminDashboard() {
     { icon: Heart, label: "Donations", path: "/admin/dashboard/donations" },
     { icon: CalendarDays, label: "Events", path: "/admin/dashboard/events" },
     { icon: CalendarClock, label: "Daily Routine", path: "/admin/dashboard/routine" },
+    { icon: BookOpen, label: "Study Circle", path: "/admin/dashboard/study-circle" },
     { icon: ClipboardList, label: "Event Registrations", path: "/admin/dashboard/registrations" },
     { icon: IdCard, label: "Members & Fees", path: "/admin/dashboard/members" },
     { icon: HandCoins, label: "Collect Fees", path: "/admin/dashboard/collect" },
