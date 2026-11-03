@@ -71,30 +71,42 @@ export function getProgramLabel(program: string): string {
 }
 
 export function getPerformerName(p: { guest_name: string | null; member_id?: string | null }): string {
-  return p.guest_name?.trim() || (p.member_id ? "Member" : "Unassigned");
+  return p.guest_name?.trim() || "";
 }
 
 export function getPerformerNames(
   performers: Array<{ guest_name: string | null; member_id?: string | null }>,
 ): string[] {
-  return performers.map(getPerformerName).filter(Boolean);
+  return performers.map(getPerformerName).filter((name) => name.length > 0);
 }
 
 export function displayTime(time: string | null): string {
   return time ? formatTime12(time) : "Time to be announced";
 }
 
+/** Rejects after `ms` milliseconds so React Query can transition to the error state. */
+function withTimeout<T>(promise: Promise<T>, ms = 10000): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<T>((_, reject) =>
+      setTimeout(() => reject(new Error("Request timed out")), ms),
+    ),
+  ]);
+}
+
 export async function fetchUpcomingPublishedSession(program: StudyCircleProgram): Promise<StudyCircleSession | null> {
   const today = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Kolkata" }).format(new Date());
-  const { data, error } = await supabase
-    .from("study_circle_sessions")
-    .select("*")
-    .eq("program_type", program)
-    .eq("is_published", true)
-    .gte("scheduled_date", today)
-    .order("scheduled_date", { ascending: true })
-    .limit(1)
-    .maybeSingle();
+  const { data, error } = await withTimeout(
+    supabase
+      .from("study_circle_sessions")
+      .select("*")
+      .eq("program_type", program)
+      .eq("is_published", true)
+      .gte("scheduled_date", today)
+      .order("scheduled_date", { ascending: true })
+      .limit(1)
+      .maybeSingle(),
+  );
   if (error) throw error;
   return data;
 }
@@ -105,14 +117,16 @@ export async function fetchSessionBundle(
 ): Promise<StudyCircleBundle | null> {
   let sessionQuery = supabase.from("study_circle_sessions").select("*").eq("id", sessionId);
   if (!includeUnpublished) sessionQuery = sessionQuery.eq("is_published", true);
-  const { data: session, error: sessionError } = await sessionQuery.maybeSingle();
+  const { data: session, error: sessionError } = await withTimeout(sessionQuery.maybeSingle());
   if (sessionError) throw sessionError;
   if (!session) return null;
 
-  const [{ data: roles, error: rolesError }, { data: parts, error: partsError }] = await Promise.all([
-    supabase.from("study_circle_roles").select("*").eq("session_id", sessionId).order("display_order"),
-    supabase.from("study_circle_parts").select("*").eq("session_id", sessionId).order("display_order"),
-  ]);
+  const [{ data: roles, error: rolesError }, { data: parts, error: partsError }] = await withTimeout(
+    Promise.all([
+      supabase.from("study_circle_roles").select("*").eq("session_id", sessionId).order("display_order"),
+      supabase.from("study_circle_parts").select("*").eq("session_id", sessionId).order("display_order"),
+    ]),
+  );
   if (rolesError) throw rolesError;
   if (partsError) throw partsError;
 
@@ -121,14 +135,17 @@ export async function fetchSessionBundle(
   const roleIds = roleRows.map((r) => r.id);
   const partIds = partRows.map((p) => p.id);
 
-  const [{ data: rolePerformers, error: rolePerformersError }, { data: partPerformers, error: partPerformersError }] = await Promise.all([
-    roleIds.length
-      ? supabase.from("study_circle_role_performers").select("*").in("role_id", roleIds).order("display_order")
-      : Promise.resolve({ data: [], error: null }),
-    partIds.length
-      ? supabase.from("study_circle_part_performers").select("*").in("part_id", partIds).order("display_order")
-      : Promise.resolve({ data: [], error: null }),
-  ]);
+  const [{ data: rolePerformers, error: rolePerformersError }, { data: partPerformers, error: partPerformersError }] =
+    await withTimeout(
+      Promise.all([
+        roleIds.length
+          ? supabase.from("study_circle_role_performers").select("*").in("role_id", roleIds).order("display_order")
+          : Promise.resolve({ data: [], error: null }),
+        partIds.length
+          ? supabase.from("study_circle_part_performers").select("*").in("part_id", partIds).order("display_order")
+          : Promise.resolve({ data: [], error: null }),
+      ]),
+    );
   if (rolePerformersError) throw rolePerformersError;
   if (partPerformersError) throw partPerformersError;
 

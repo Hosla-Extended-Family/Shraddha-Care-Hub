@@ -18,6 +18,7 @@ export default function StudyCircle() {
     queryKey: ["study-circle-current", program],
     queryFn: () => fetchUpcomingPublishedSession(program),
     staleTime: 5 * 60 * 1000,
+    retry: false,
   });
 
   useEffect(() => {
@@ -30,6 +31,7 @@ export default function StudyCircle() {
     queryFn: () => fetchSessionBundle(sessionId!),
     enabled: Boolean(sessionId),
     staleTime: 5 * 60 * 1000,
+    retry: false,
   });
 
   const past = useQuery({
@@ -37,11 +39,18 @@ export default function StudyCircle() {
     queryFn: async () => {
       const { supabase } = await import("@/integrations/supabase/client");
       const today = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Kolkata" }).format(new Date());
-      const { data, error } = await supabase.from("study_circle_sessions").select("*").eq("program_type", program).eq("is_published", true).lt("scheduled_date", today).order("scheduled_date", { ascending: false }).limit(5);
+      const request = supabase.from("study_circle_sessions").select("*").eq("program_type", program).eq("is_published", true).lt("scheduled_date", today).order("scheduled_date", { ascending: false }).limit(5);
+      const { data, error } = await Promise.race([
+        request,
+        new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error("Request timed out")), 10000),
+        ),
+      ]);
       if (error) throw error;
       return data ?? [];
     },
     staleTime: 5 * 60 * 1000,
+    retry: false,
   });
 
   const otherProgram = useMemo<StudyCircleProgram>(() => program === "kathamrita" ? "pathochokro" : "kathamrita", [program]);
@@ -66,6 +75,11 @@ export default function StudyCircle() {
           <TabsContent value={program} className="mt-6 space-y-8">
             {current.isLoading || bundle.isLoading ? (
               <div className="flex justify-center py-16"><Loader2 className="h-7 w-7 animate-spin text-primary" /></div>
+            ) : current.isError || bundle.isError ? (
+              <div className="rounded-2xl border bg-muted/20 p-10 text-center">
+                <h2 className="text-xl font-semibold">Could not load session</h2>
+                <p className="mt-2 text-sm text-muted-foreground">Please try refreshing the page.</p>
+              </div>
             ) : bundle.data ? (
               <SessionViewer bundle={bundle.data} />
             ) : (
@@ -80,11 +94,11 @@ export default function StudyCircle() {
                 <AccordionItem value="past">
                   <AccordionTrigger>Past sessions · last 5</AccordionTrigger>
                   <AccordionContent>
-                    <div className="space-y-2 pt-2">
+                    <Accordion type="single" collapsible className="space-y-2 pt-2">
                       {past.data.map((session) => (
                         <PastSession key={session.id} sessionId={session.id} title={session.title_bn} date={formatSessionDate(session.scheduled_date)} />
                       ))}
-                    </div>
+                    </Accordion>
                   </AccordionContent>
                 </AccordionItem>
               </Accordion>
@@ -109,13 +123,11 @@ function PastSession({ sessionId, title, date }: { sessionId: string; title: str
     staleTime: 30 * 60 * 1000,
   });
   return (
-    <Accordion type="single" collapsible>
-      <AccordionItem value={sessionId} className="rounded-xl border px-4">
-        <AccordionTrigger><span className="text-left"><span className="font-medium">{title}</span><span className="ml-2 text-xs text-muted-foreground">{date}</span></span></AccordionTrigger>
-        <AccordionContent>
-          {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : data ? <SessionViewer bundle={data} /> : null}
-        </AccordionContent>
-      </AccordionItem>
-    </Accordion>
+    <AccordionItem value={sessionId} className="rounded-xl border px-4">
+      <AccordionTrigger><span className="text-left"><span className="font-medium">{title}</span><span className="ml-2 text-xs text-muted-foreground">{date}</span></span></AccordionTrigger>
+      <AccordionContent>
+        {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : data ? <SessionViewer bundle={data} /> : null}
+      </AccordionContent>
+    </AccordionItem>
   );
 }

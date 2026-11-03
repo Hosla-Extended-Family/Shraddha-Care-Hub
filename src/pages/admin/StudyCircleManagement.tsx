@@ -74,7 +74,8 @@ export default function StudyCircleManagement() {
       if (error) throw error;
       const rows = data ?? [];
       const counts = await Promise.all(rows.map(async (s) => {
-        const { count } = await supabase.from("study_circle_parts").select("id", { count: "exact", head: true }).eq("session_id", s.id);
+        const { count, error: countError } = await supabase.from("study_circle_parts").select("id", { count: "exact", head: true }).eq("session_id", s.id);
+        if (countError) throw countError;
         return [s.id, count ?? 0] as const;
       }));
       return { rows, counts: new Map(counts) };
@@ -96,7 +97,7 @@ export default function StudyCircleManagement() {
         id: r.id,
         role_name: r.role_name,
         display_order: r.display_order,
-        performers: r.performers.map((p) => ({ memberId: p.member_id, guestName: p.guest_name, displayName: p.guest_name ?? "" })),
+        performers: r.performers.map((p) => ({ memberId: p.member_id, guestName: p.guest_name, displayName: p.guest_name?.trim() || (p.member_id ?? "") })),
       })),
       parts: bundle.parts.map((p) => ({
         id: p.id,
@@ -104,7 +105,7 @@ export default function StudyCircleManagement() {
         part_type: p.part_type,
         description: p.description,
         display_order: p.display_order,
-        performers: p.performers.map((x) => ({ memberId: x.member_id, guestName: x.guest_name, displayName: x.guest_name ?? "" })),
+        performers: p.performers.map((x) => ({ memberId: x.member_id, guestName: x.guest_name, displayName: x.guest_name?.trim() || (x.member_id ?? "") })),
       })),
     });
     setDirty(false);
@@ -196,17 +197,21 @@ export default function StudyCircleManagement() {
     onError: (error: any) => toast({ title: "Auto-save failed", description: error.message, variant: "destructive" }),
   });
 
+  const isPending = saveMutation.isPending;
   useEffect(() => {
-    if (!editingId || !editor || !dirty || saveMutation.isPending) return;
+    if (!editingId || !editor || !dirty || isPending) return;
     const timer = window.setTimeout(() => saveMutation.mutate({ id: editingId, value: editor }), 2000);
     return () => window.clearTimeout(timer);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [editor, editingId, dirty]);
+  }, [editor, editingId, dirty, isPending]);
 
   const publishMutation = useMutation({
     mutationFn: async () => {
       if (!editingId || !editor) return;
-      if (dirty) await saveMutation.mutateAsync({ id: editingId, value: editor });
+      if (dirty) {
+        setDirty(false);
+        await saveMutation.mutateAsync({ id: editingId, value: editor });
+      }
       const { error } = await supabase.from("study_circle_sessions").update({ is_published: true }).eq("id", editingId);
       if (error) throw error;
     },
@@ -262,6 +267,11 @@ export default function StudyCircleManagement() {
     setDirty(true);
   };
 
+  const updateEditorFn = (fn: (current: EditorState) => EditorState) => {
+    setEditor((current) => current ? fn(current) : current);
+    setDirty(true);
+  };
+
   const backToList = () => { setEditingId(null); setEditor(null); setDirty(false); };
 
   if (editingId && editor) {
@@ -270,6 +280,7 @@ export default function StudyCircleManagement() {
       dirty={dirty}
       saving={saveMutation.isPending}
       onChange={updateEditor}
+      onChangeLatest={updateEditorFn}
       onSave={() => saveMutation.mutate({ id: editingId, value: editor })}
       onBack={backToList}
       onPublish={() => setPublishOpen(true)}
@@ -341,7 +352,7 @@ function SessionColumn({ title, subtitle, program, sessions, counts, onEdit }: {
   );
 }
 
-function SortablePart({ part, index, onChange, onDelete }: { part: EditorPart; index: number; onChange: (patch: Partial<EditorPart>) => void; onDelete: () => void }) {
+function SortablePart({ part, index, onChange, onDelete, onPerformerChange }: { part: EditorPart; index: number; onChange: (patch: Partial<EditorPart>) => void; onDelete: () => void; onPerformerChange: (performerIndex: number, v: PerformerValue) => void }) {
   const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id: part.id });
   const style = { transform: CSS.Transform.toString(transform), transition };
   return (
@@ -355,7 +366,7 @@ function SortablePart({ part, index, onChange, onDelete }: { part: EditorPart; i
             <div><Label className="text-xs">Description</Label><Textarea value={part.description} onChange={(e) => onChange({ description: e.target.value })} rows={2} placeholder="What will be read/sung?" /></div>
             <Button type="button" variant="ghost" size="icon" className="mt-5 text-destructive" onClick={onDelete}><Trash2 className="h-4 w-4" /></Button>
           </div>
-          <div className="space-y-2"><Label className="text-xs">Performers</Label>{part.performers.map((performer: PerformerValue, performerIndex: number) => <div key={`${part.id}-${performerIndex}`} className="flex gap-2"><div className="min-w-0 flex-1"><MemberSearchCombobox value={performer} onChange={(v) => onChange({ performers: v.displayName ? part.performers.map((p, i) => i === performerIndex ? v : p) : part.performers.filter((_, i) => i !== performerIndex) })} /></div><Button type="button" variant="ghost" size="icon" onClick={() => onChange({ performers: part.performers.filter((_, i) => i !== performerIndex) })}><X className="h-4 w-4" /></Button></div>)}<Button type="button" variant="outline" size="sm" onClick={() => onChange({ performers: [...part.performers, { memberId: null, guestName: null, displayName: "" }] })}><Plus className="mr-1 h-3.5 w-3.5" />Add performer</Button>{part.performers.length === 0 && <p className="text-xs text-muted-foreground">No performer assigned.</p>}</div>
+          <div className="space-y-2"><Label className="text-xs">Performers</Label>{part.performers.map((performer: PerformerValue, performerIndex: number) => <div key={`${part.id}-${performerIndex}`} className="flex gap-2"><div className="min-w-0 flex-1"><MemberSearchCombobox value={performer} onChange={(v) => onPerformerChange(performerIndex, v)} /></div><Button type="button" variant="ghost" size="icon" onClick={() => onChange({ performers: part.performers.filter((_, i) => i !== performerIndex) })}><X className="h-4 w-4" /></Button></div>)}<Button type="button" variant="outline" size="sm" onClick={() => onChange({ performers: [...part.performers, { memberId: null, guestName: null, displayName: "" }] })}><Plus className="mr-1 h-3.5 w-3.5" />Add performer</Button>{part.performers.length === 0 && <p className="text-xs text-muted-foreground">No performer assigned.</p>}</div>
         </div>
       </div>
       <div className="mt-2 text-right text-xs text-muted-foreground">Part {index + 1} in display order</div>
@@ -363,9 +374,31 @@ function SortablePart({ part, index, onChange, onDelete }: { part: EditorPart; i
   );
 }
 
-function SessionEditor({ editor, dirty, saving, onChange, onSave, onBack, onPublish, onUnpublish, unpublishPending, onDelete, publishWarnings, publishOpen, setPublishOpen, publishPending, confirmPublish, deleteOpen, setDeleteOpen, deletePending, confirmDelete }: any) {
+function SessionEditor({ editor, dirty, saving, onChange, onSave, onBack, onPublish, onUnpublish, unpublishPending, onDelete, publishWarnings, publishOpen, setPublishOpen, publishPending, confirmPublish, deleteOpen, setDeleteOpen, deletePending, confirmDelete, onChangeLatest }: any) {
   const updateRole = (id: string, patch: Partial<EditorRole>) => onChange({ roles: editor.roles.map((r: EditorRole) => r.id === id ? { ...r, ...patch } : r) });
   const updatePart = (id: string, patch: Partial<EditorPart>) => onChange({ parts: editor.parts.map((p: EditorPart) => p.id === id ? { ...p, ...patch } : p) });
+  const updateRolePerformer = (roleId: string, performerIndex: number, v: PerformerValue) =>
+    onChangeLatest((current: EditorState) => {
+      const roles = current.roles.map((r: EditorRole) => {
+        if (r.id !== roleId) return r;
+        const performers = v.displayName
+          ? r.performers.map((p: PerformerValue, i: number) => (i === performerIndex ? v : p))
+          : r.performers.filter((_: PerformerValue, i: number) => i !== performerIndex);
+        return { ...r, performers };
+      });
+      return { ...current, roles };
+    });
+  const updatePartPerformer = (partId: string, performerIndex: number, v: PerformerValue) =>
+    onChangeLatest((current: EditorState) => {
+      const parts = current.parts.map((p: EditorPart) => {
+        if (p.id !== partId) return p;
+        const performers = v.displayName
+          ? p.performers.map((x: PerformerValue, i: number) => (i === performerIndex ? v : x))
+          : p.performers.filter((_: PerformerValue, i: number) => i !== performerIndex);
+        return { ...p, performers };
+      });
+      return { ...current, parts };
+    });
   const addRole = () => onChange({ roles: [...editor.roles, { id: crypto.randomUUID(), role_name: "Custom Role", display_order: editor.roles.length + 1, performers: [] }] });
   const addPart = () => onChange({ parts: [...editor.parts, { id: crypto.randomUUID(), part_number: editor.parts.length + 1, part_type: "other", description: "", display_order: editor.parts.length + 1, performers: [] }] });
   const onDragEnd = (event: DragEndEvent) => {
@@ -392,11 +425,11 @@ function SessionEditor({ editor, dirty, saving, onChange, onSave, onBack, onPubl
       </CardContent></Card>
 
       <Card><CardHeader><CardTitle className="flex items-center justify-between">Roles <Button variant="outline" size="sm" onClick={addRole}><Plus className="mr-1 h-4 w-4" />Add role</Button></CardTitle></CardHeader><CardContent className="space-y-3">
-        {editor.roles.map((role: EditorRole, i: number) => <div key={role.id} className="rounded-xl border p-4"><div className="grid gap-3 md:grid-cols-[1fr_1fr_auto]"><div><Label className="text-xs">Role</Label><Input value={role.role_name} onChange={(e) => updateRole(role.id, { role_name: e.target.value })} /></div><div className="space-y-2 md:col-span-2"><Label className="text-xs">Performers</Label>{role.performers.map((performer: PerformerValue, performerIndex: number) => <div key={`${role.id}-${performerIndex}`} className="flex gap-2"><div className="min-w-0 flex-1"><MemberSearchCombobox value={performer} onChange={(v) => updateRole(role.id, { performers: v.displayName ? role.performers.map((p, i) => i === performerIndex ? v : p) : role.performers.filter((_, i) => i !== performerIndex) })} /></div><Button type="button" variant="ghost" size="icon" onClick={() => updateRole(role.id, { performers: role.performers.filter((_, i) => i !== performerIndex) })}><X className="h-4 w-4" /></Button></div>)}<Button type="button" variant="outline" size="sm" onClick={() => updateRole(role.id, { performers: [...role.performers, { memberId: null, guestName: null, displayName: "" }] })}><Plus className="mr-1 h-3.5 w-3.5" />Add performer</Button>{role.performers.length === 0 && <p className="text-xs text-muted-foreground">No performer assigned.</p>}</div><Button variant="ghost" size="icon" className="mt-5 text-destructive" onClick={() => onChange({ roles: editor.roles.filter((r: EditorRole) => r.id !== role.id) })}><X className="h-4 w-4" /></Button></div><p className="mt-2 text-xs text-muted-foreground">Role {i + 1}</p></div>)}
+        {editor.roles.map((role: EditorRole, i: number) => <div key={role.id} className="rounded-xl border p-4"><div className="grid gap-3 md:grid-cols-[1fr_1fr_auto]"><div><Label className="text-xs">Role</Label><Input value={role.role_name} onChange={(e) => updateRole(role.id, { role_name: e.target.value })} /></div><div className="space-y-2 md:col-span-2"><Label className="text-xs">Performers</Label>{role.performers.map((performer: PerformerValue, performerIndex: number) => <div key={`${role.id}-${performerIndex}`} className="flex gap-2"><div className="min-w-0 flex-1"><MemberSearchCombobox value={performer} onChange={(v) => updateRolePerformer(role.id, performerIndex, v)} /></div><Button type="button" variant="ghost" size="icon" onClick={() => updateRole(role.id, { performers: role.performers.filter((_, i) => i !== performerIndex) })}><X className="h-4 w-4" /></Button></div>)}<Button type="button" variant="outline" size="sm" onClick={() => updateRole(role.id, { performers: [...role.performers, { memberId: null, guestName: null, displayName: "" }] })}><Plus className="mr-1 h-3.5 w-3.5" />Add performer</Button>{role.performers.length === 0 && <p className="text-xs text-muted-foreground">No performer assigned.</p>}</div><Button variant="ghost" size="icon" className="mt-5 text-destructive" onClick={() => onChange({ roles: editor.roles.filter((r: EditorRole) => r.id !== role.id) })}><X className="h-4 w-4" /></Button></div><p className="mt-2 text-xs text-muted-foreground">Role {i + 1}</p></div>)}
       </CardContent></Card>
 
       <Card><CardHeader><CardTitle className="flex items-center justify-between">Programme Parts <Button variant="outline" size="sm" onClick={addPart}><Plus className="mr-1 h-4 w-4" />Add Part</Button></CardTitle></CardHeader><CardContent>
-        <DndContext collisionDetection={closestCenter} onDragEnd={onDragEnd}><SortableContext items={editor.parts.map((p: EditorPart) => p.id)} strategy={verticalListSortingStrategy}><div className="space-y-3">{editor.parts.map((part: EditorPart, i: number) => <SortablePart key={part.id} part={part} index={i} onChange={(patch) => updatePart(part.id, patch)} onDelete={() => onChange({ parts: editor.parts.filter((p: EditorPart) => p.id !== part.id) })} />)}</div></SortableContext></DndContext>
+        <DndContext collisionDetection={closestCenter} onDragEnd={onDragEnd}><SortableContext items={editor.parts.map((p: EditorPart) => p.id)} strategy={verticalListSortingStrategy}><div className="space-y-3">{editor.parts.map((part: EditorPart, i: number) => <SortablePart key={part.id} part={part} index={i} onChange={(patch) => updatePart(part.id, patch)} onDelete={() => onChange({ parts: editor.parts.filter((p: EditorPart) => p.id !== part.id) })} onPerformerChange={(performerIndex, v) => updatePartPerformer(part.id, performerIndex, v)} />)}</div></SortableContext></DndContext>
         {editor.parts.length === 0 && <div className="rounded-xl border border-dashed p-8 text-center text-sm text-muted-foreground">No parts yet. Add the first programme part.</div>}
       </CardContent></Card>
 

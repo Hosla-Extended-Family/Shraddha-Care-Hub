@@ -7,10 +7,11 @@ import { cn } from "@/lib/utils";
 
 function ProgramCard({ program }: { program: StudyCircleProgram }) {
   const meta = PROGRAM_META[program];
-  const { data: session, isLoading } = useQuery({
+  const { data: session, isLoading, isError } = useQuery({
     queryKey: ["study-circle-next", program],
     queryFn: () => fetchUpcomingPublishedSession(program),
     staleTime: 5 * 60 * 1000,
+    retry: false,
   });
   const orange = program === "kathamrita";
 
@@ -28,6 +29,8 @@ function ProgramCard({ program }: { program: StudyCircleProgram }) {
         <h2 className="text-xl font-bold">{meta.label}</h2>
         {isLoading ? (
           <div className="mt-4 flex items-center gap-2 text-sm text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" />Loading next session…</div>
+        ) : isError ? (
+          <p className="mt-4 text-sm text-muted-foreground">Could not load session info.</p>
         ) : session ? (
           <>
             <div className="mt-3 text-sm font-medium">{formatSessionDate(session.scheduled_date)} · {displayTime(session.start_time)}</div>
