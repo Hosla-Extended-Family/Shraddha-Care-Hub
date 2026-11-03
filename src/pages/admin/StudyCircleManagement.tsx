@@ -149,6 +149,10 @@ export default function StudyCircleManagement() {
       const keepRoleIds = value.roles.map((r) => r.id);
       const rolesToDelete = (existingRoles ?? []).map((r) => r.id).filter((rid) => !keepRoleIds.includes(rid));
       if (rolesToDelete.length) {
+        // Explicitly delete performers before their parent roles (cascade exists in DB,
+        // but being explicit avoids any ambiguity with RLS evaluation order).
+        const { error: deleteRolePerformersFirst } = await supabase.from("study_circle_role_performers").delete().in("role_id", rolesToDelete);
+        if (deleteRolePerformersFirst) throw deleteRolePerformersFirst;
         const { error: deleteRolesError } = await supabase.from("study_circle_roles").delete().in("id", rolesToDelete);
         if (deleteRolesError) throw deleteRolesError;
       }
@@ -171,6 +175,10 @@ export default function StudyCircleManagement() {
       const keepPartIds = value.parts.map((p) => p.id);
       const partsToDelete = (existingParts ?? []).map((p) => p.id).filter((pid) => !keepPartIds.includes(pid));
       if (partsToDelete.length) {
+        // Explicitly delete performers before their parent parts (cascade exists in DB,
+        // but being explicit avoids any ambiguity with RLS evaluation order).
+        const { error: deletePartPerformersFirst } = await supabase.from("study_circle_part_performers").delete().in("part_id", partsToDelete);
+        if (deletePartPerformersFirst) throw deletePartPerformersFirst;
         const { error: deletePartsError } = await supabase.from("study_circle_parts").delete().in("id", partsToDelete);
         if (deletePartsError) throw deletePartsError;
       }
