@@ -13,6 +13,7 @@ import {
   hasJoinLink, timeToMinutes, type RoutineSession,
 } from "@/lib/routine";
 import { cn } from "@/lib/utils";
+import { StudyCircleCTA } from "@/components/studycircle/StudyCircleCTA";
 
 export default function DailyRoutine() {
   const [now, setNow] = useState(() => getISTNow());
@@ -26,19 +27,26 @@ export default function DailyRoutine() {
     return () => clearInterval(id);
   }, []);
 
-  const { data: sessions = [], isLoading } = useQuery({
+  const { data: sessions = [], isLoading, isError } = useQuery({
     queryKey: ["routine-sessions"],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const request = supabase
         .from("routine_sessions")
         .select("*")
         .eq("is_active", true)
         .order("day_of_week", { ascending: true })
         .order("start_time", { ascending: true })
         .order("display_order", { ascending: true });
+      const { data, error } = await Promise.race([
+        request,
+        new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error("Request timed out")), 10000),
+        ),
+      ]);
       if (error) throw error;
       return data as RoutineSession[];
     },
+    retry: false,
   });
 
   const isToday = selectedDay === now.day;
@@ -113,6 +121,8 @@ export default function DailyRoutine() {
           </ScrollReveal>
         </div>
       </section>
+
+      <StudyCircleCTA />
 
       <section className="py-8 lg:py-12">
         <div className="container max-w-5xl">
@@ -254,6 +264,11 @@ export default function DailyRoutine() {
           {isLoading ? (
             <div className="flex justify-center py-16">
               <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            </div>
+          ) : isError ? (
+            <div className="text-center py-16 bg-card rounded-2xl border border-border">
+              <CalendarDays className="h-12 w-12 mx-auto mb-4 text-muted-foreground/40" />
+              <p className="text-muted-foreground">Could not load sessions. Please try refreshing the page.</p>
             </div>
           ) : daySessions.length === 0 ? (
             <div className="text-center py-16 bg-card rounded-2xl border border-border">

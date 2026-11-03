@@ -24,6 +24,7 @@ const Register = lazy(() => import("./pages/Register"));
 const EventRegistration = lazy(() => import("./pages/EventRegistration"));
 const MembershipPlansPage = lazy(() => import("./pages/MembershipPlansPage"));
 const DailyRoutine = lazy(() => import("./pages/DailyRoutine"));
+const StudyCircle = lazy(() => import("./pages/StudyCircle"));
 const Auth = lazy(() => import("./pages/Auth"));
 const Blog = lazy(() => import("./pages/Blog"));
 const BlogRead = lazy(() => import("./pages/BlogRead"));
@@ -47,6 +48,7 @@ const AdminTeamManagement = lazy(() => import("./pages/admin/TeamManagement"));
 const AdminRegistrations = lazy(() => import("./pages/admin/Registrations"));
 const AdminEventManagement = lazy(() => import("./pages/admin/EventManagement"));
 const AdminRoutineManagement = lazy(() => import("./pages/admin/RoutineManagement"));
+const AdminStudyCircle = lazy(() => import("./pages/admin/StudyCircleManagement"));
 const AdminPreviewInspector = lazy(() => import("./pages/admin/PreviewInspector"));
 const AdminCollaborateContent = lazy(() => import("./pages/admin/CollaborateContent"));
 const AdminBlogs = lazy(() => import("./pages/admin/Blogs"));
@@ -97,6 +99,7 @@ const App = () => {
             <Route path="/register/:slug" element={<EventRegistration />} />
             <Route path="/membership-plans" element={<MembershipPlansPage />} />
             <Route path="/daily-routine" element={<DailyRoutine />} />
+            <Route path="/daily-routine/study-circle" element={<StudyCircle />} />
             <Route path="/mumbai-health-camp" element={<Navigate to="/register/mumbai-senior-citizens-health-camp" replace />} />
             <Route path="/auth" element={<Auth />} />
             <Route path="/blog" element={<Blog />} />
@@ -121,6 +124,7 @@ const App = () => {
               <Route path="team" element={<AdminTeamManagement />} />
               <Route path="events" element={<AdminEventManagement />} />
               <Route path="routine" element={<AdminRoutineManagement />} />
+              <Route path="study-circle" element={<AdminStudyCircle />} />
               <Route path="registrations" element={<AdminRegistrations />} />
               <Route path="memberships" element={<Navigate to="/admin/dashboard/members" replace />} />
               <Route path="members" element={<AdminMembers />} />

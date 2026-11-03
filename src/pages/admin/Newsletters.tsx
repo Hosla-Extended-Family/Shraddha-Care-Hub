@@ -107,7 +107,8 @@ export default function AdminNewsletters() {
 
   const removeBlog = async (blogId: string) => {
     if (!selectedId) return;
-    await supabase.from("newsletter_blogs").delete().eq("newsletter_id", selectedId).eq("blog_id", blogId);
+    const { error } = await supabase.from("newsletter_blogs").delete().eq("newsletter_id", selectedId).eq("blog_id", blogId);
+    if (error) { toast({ title: "Remove failed", description: error.message, variant: "destructive" }); return; }
     loadItems(selectedId);
   };
 
