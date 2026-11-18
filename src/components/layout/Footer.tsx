@@ -133,11 +133,17 @@ export function Footer() {
           </div>
         </div>
 
-        <div className="border-t border-border mt-8 pt-8 text-center">
+        <div className="border-t border-border mt-8 pt-8 flex flex-col sm:flex-row items-center justify-between gap-3 text-center sm:text-left">
           <p className="text-sm text-muted-foreground inline-flex items-center justify-center gap-1.5 flex-wrap">
             © {new Date().getFullYear()} Shraddha. All rights reserved. | Powered by{" "}
             <img src={hoslaLogo} alt="Hosla" className="h-4 inline-block" width={36} height={16} loading="lazy" />
           </p>
+          <Link
+            to="/admin/login"
+            className="text-xs text-muted-foreground hover:text-primary transition-colors underline"
+          >
+            Admin Portal
+          </Link>
         </div>
       </div>
     </footer>
