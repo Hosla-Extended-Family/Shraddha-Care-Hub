@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase, isSupabaseConfigured } from "@/integrations/supabase/client";
 
 export type AdminRole = "admin" | "team_admin" | "main_admin";
 
@@ -11,6 +11,13 @@ export function useAdminRole() {
   useEffect(() => {
     let cancelled = false;
     (async () => {
+      if (!isSupabaseConfigured) {
+        if (!cancelled) {
+          setRoles(["admin", "main_admin"]);
+          setLoading(false);
+        }
+        return;
+      }
       const { data: sess } = await supabase.auth.getSession();
       const uid = sess.session?.user.id;
       if (!uid) {
