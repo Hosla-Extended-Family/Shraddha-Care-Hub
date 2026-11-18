@@ -121,11 +121,24 @@ export const PROGRAMS: Record<StudyCircleProgram, {
   },
 };
 
+export const USER_ROLES = [
+  "Listener / Participant",
+  "Performer",
+  "Anchor / Host",
+  "Director / Coordinator",
+  "Speaker / Educator",
+  "Singer",
+  "Reader",
+  "Other Role",
+] as const;
+
+export type UserRole = (typeof USER_ROLES)[number];
+
 export const DEFAULT_ROLES = [
-  "President (সভাপতি)",
-  "Conductor (সঞ্চালক)",
-  "Reader (পাঠক)",
-  "Opening Song (উদ্বোধনী সঙ্গীত)",
+  "Anchor / Host",
+  "Director / Coordinator",
+  "Singer",
+  "Reader",
 ];
 
 export function formatSessionDate(dateStr: string, lang: "en" | "bn" = "en"): string {
@@ -194,8 +207,8 @@ export const DEMO_BUNDLES: Record<string, SessionBundle> = {
       {
         id: "r-1",
         session_id: "demo-pathochokro",
-        role_name: "President (সভাপতি)",
-        role_name_en: "President",
+        role_name: "Director / Coordinator",
+        role_name_en: "Director / Coordinator",
         display_order: 1,
         created_at: "",
         performers: [
@@ -214,8 +227,8 @@ export const DEMO_BUNDLES: Record<string, SessionBundle> = {
       {
         id: "r-2",
         session_id: "demo-pathochokro",
-        role_name: "Conductor (সঞ্চালক)",
-        role_name_en: "Conductor",
+        role_name: "Anchor / Host",
+        role_name_en: "Anchor / Host",
         display_order: 2,
         created_at: "",
         performers: [
@@ -234,7 +247,7 @@ export const DEMO_BUNDLES: Record<string, SessionBundle> = {
       {
         id: "r-3",
         session_id: "demo-pathochokro",
-        role_name: "Reader (পাঠক)",
+        role_name: "Reader",
         role_name_en: "Reader",
         display_order: 3,
         created_at: "",
@@ -254,8 +267,8 @@ export const DEMO_BUNDLES: Record<string, SessionBundle> = {
       {
         id: "r-4",
         session_id: "demo-pathochokro",
-        role_name: "Opening Song (উদ্বোধনী সঙ্গীত)",
-        role_name_en: "Opening Song",
+        role_name: "Singer",
+        role_name_en: "Singer",
         display_order: 4,
         created_at: "",
         performers: [
@@ -373,8 +386,8 @@ export const DEMO_BUNDLES: Record<string, SessionBundle> = {
       {
         id: "rk-1",
         session_id: "demo-kathamrita",
-        role_name: "President (সভাপতি)",
-        role_name_en: "President",
+        role_name: "Director / Coordinator",
+        role_name_en: "Director / Coordinator",
         display_order: 1,
         created_at: "",
         performers: [
@@ -393,8 +406,8 @@ export const DEMO_BUNDLES: Record<string, SessionBundle> = {
       {
         id: "rk-2",
         session_id: "demo-kathamrita",
-        role_name: "Conductor (সঞ্চালক)",
-        role_name_en: "Conductor",
+        role_name: "Anchor / Host",
+        role_name_en: "Anchor / Host",
         display_order: 2,
         created_at: "",
         performers: [
@@ -413,7 +426,7 @@ export const DEMO_BUNDLES: Record<string, SessionBundle> = {
       {
         id: "rk-3",
         session_id: "demo-kathamrita",
-        role_name: "Reader (পাঠক)",
+        role_name: "Reader",
         role_name_en: "Reader",
         display_order: 3,
         created_at: "",
@@ -433,8 +446,8 @@ export const DEMO_BUNDLES: Record<string, SessionBundle> = {
       {
         id: "rk-4",
         session_id: "demo-kathamrita",
-        role_name: "Opening Song (উদ্বোধনী সঙ্গীত)",
-        role_name_en: "Opening Song",
+        role_name: "Singer",
+        role_name_en: "Singer",
         display_order: 4,
         created_at: "",
         performers: [
@@ -547,8 +560,8 @@ DEMO_BUNDLES["demo-past-p1"] = {
     {
       id: "rp-p1-1",
       session_id: "demo-past-p1",
-      role_name: "President (সভাপতি)",
-      role_name_en: "President",
+      role_name: "Director / Coordinator",
+      role_name_en: "Director / Coordinator",
       display_order: 1,
       created_at: "",
       performers: [{ id: "p-p1", role_id: "rp-p1-1", member_id: "m-1", performer_name: "ডা. অসীম বন্দ্যোপাধ্যায়", performer_name_en: "Dr. Asim Bandyopadhyay", is_guest: false, display_order: 1, created_at: "" }],

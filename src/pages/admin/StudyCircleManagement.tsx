@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { closestCenter, DndContext, type DragEndEvent } from "@dnd-kit/core";
 import { arrayMove, SortableContext, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
@@ -7,11 +7,13 @@ import {
   ArrowLeft,
   BookOpen,
   CalendarDays,
+  Clock,
   Copy,
   GripVertical,
   Loader2,
   Plus,
   Save,
+  Search,
   Trash2,
   X,
 } from "lucide-react";
@@ -39,10 +41,12 @@ import { MemberSearchCombobox } from "@/components/admin/MemberSearchCombobox";
 import {
   DEFAULT_ROLES,
   DEMO_SESSIONS,
+  displayTime,
   fetchSessionBundle,
   formatSessionDate,
   generateWhatsAppMessage,
   PROGRAMS,
+  USER_ROLES,
   type SessionBundle,
   type StudyCircleProgram,
   type StudyCircleSession,
@@ -98,6 +102,11 @@ export default function StudyCircleManagement() {
   const [createDate, setCreateDate] = useState(() => new Date().toISOString().slice(0, 10));
   const [publishOpen, setPublishOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
+
+  // Filters for unified session frame
+  const [filterProgram, setFilterProgram] = useState<"all" | StudyCircleProgram>("all");
+  const [filterStatus, setFilterStatus] = useState<"all" | "scheduled" | "cancelled" | "published" | "draft">("all");
+  const [searchQuery, setSearchQuery] = useState("");
 
   // Load all sessions
   const sessions = useQuery({
@@ -482,8 +491,23 @@ export default function StudyCircleManagement() {
   // Render View A: Session List
   const rows = sessions.data?.rows ?? [];
   const counts = sessions.data?.counts ?? new Map<string, number>();
-  const kathamrita = rows.filter((r) => r.program_type === "kathamrita");
-  const pathochokro = rows.filter((r) => r.program_type === "pathochokro");
+
+  const filteredRows = useMemo(() => {
+    return rows.filter((s) => {
+      if (filterProgram !== "all" && s.program_type !== filterProgram) return false;
+      if (filterStatus === "scheduled" && s.status !== "scheduled") return false;
+      if (filterStatus === "cancelled" && s.status !== "cancelled") return false;
+      if (filterStatus === "published" && !s.is_published) return false;
+      if (filterStatus === "draft" && s.is_published) return false;
+      if (searchQuery.trim()) {
+        const q = searchQuery.toLowerCase().trim();
+        const matchesDate = s.scheduled_date.includes(q);
+        const matchesTitle = s.title_bn.toLowerCase().includes(q);
+        if (!matchesDate && !matchesTitle) return false;
+      }
+      return true;
+    });
+  }, [rows, filterProgram, filterStatus, searchQuery]);
 
   return (
     <div className="space-y-6">
@@ -491,10 +515,10 @@ export default function StudyCircleManagement() {
         <div>
           <h1 className="text-2xl lg:text-3xl font-bold flex items-center gap-2">
             <BookOpen className="h-7 w-7 text-primary" />
-            Study Circle Schedule (পাঠচক্র সূচী)
+            Study Circle Sessions (পাঠচক্র ও কথামৃত)
           </h1>
           <p className="text-muted-foreground mt-1 text-sm">
-            Manage weekly Study Circle sessions, assign member performers, and generate WhatsApp broadcasts.
+            Manage weekly schedules, assigned roles, and WhatsApp announcements.
           </p>
         </div>
         <Button onClick={() => setCreateOpen(true)} className="gap-2">
@@ -503,30 +527,146 @@ export default function StudyCircleManagement() {
         </Button>
       </div>
 
-      {sessions.isLoading ? (
-        <div className="flex justify-center py-20">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        </div>
-      ) : (
-        <div className="grid gap-6 lg:grid-cols-2">
-          <SessionColumn
-            title="রামকৃষ্ণ কথামৃত"
-            subtitle="Tuesday (মঙ্গলবার)"
-            program="kathamrita"
-            sessions={kathamrita}
-            counts={counts}
-            onEdit={loadEditor}
-          />
-          <SessionColumn
-            title="পাঠচক্র"
-            subtitle="Thursday (বৃহস্পতিবার)"
-            program="pathochokro"
-            sessions={pathochokro}
-            counts={counts}
-            onEdit={loadEditor}
-          />
-        </div>
-      )}
+      {/* Unified Frame with Filter Options */}
+      <Card className="border shadow-sm overflow-hidden">
+        <CardHeader className="bg-muted/30 border-b p-4 sm:p-5">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+            {/* Program Filter Pills */}
+            <div className="flex flex-wrap items-center gap-1.5 p-1 bg-background/80 rounded-xl border">
+              <Button
+                variant={filterProgram === "all" ? "default" : "ghost"}
+                size="sm"
+                onClick={() => setFilterProgram("all")}
+                className="h-8 text-xs font-semibold rounded-lg"
+              >
+                All Sessions ({rows.length})
+              </Button>
+              <Button
+                variant={filterProgram === "pathochokro" ? "default" : "ghost"}
+                size="sm"
+                onClick={() => setFilterProgram("pathochokro")}
+                className="h-8 text-xs font-semibold rounded-lg"
+              >
+                পাঠচক্র · Thursday ({rows.filter((r) => r.program_type === "pathochokro").length})
+              </Button>
+              <Button
+                variant={filterProgram === "kathamrita" ? "default" : "ghost"}
+                size="sm"
+                onClick={() => setFilterProgram("kathamrita")}
+                className="h-8 text-xs font-semibold rounded-lg"
+              >
+                রামকৃষ্ণ কথামৃত · Tuesday ({rows.filter((r) => r.program_type === "kathamrita").length})
+              </Button>
+            </div>
+
+            {/* Status & Search Filters */}
+            <div className="flex flex-wrap items-center gap-2">
+              <Select value={filterStatus} onValueChange={(v) => setFilterStatus(v as any)}>
+                <SelectTrigger className="h-9 w-36 text-xs bg-background">
+                  <SelectValue placeholder="Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Status</SelectItem>
+                  <SelectItem value="published">Published</SelectItem>
+                  <SelectItem value="draft">Draft</SelectItem>
+                  <SelectItem value="scheduled">Scheduled</SelectItem>
+                  <SelectItem value="cancelled">Cancelled</SelectItem>
+                </SelectContent>
+              </Select>
+
+              <div className="relative w-44 sm:w-56">
+                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                <Input
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Search date or title…"
+                  className="h-9 pl-8 text-xs bg-background"
+                />
+              </div>
+            </div>
+          </div>
+        </CardHeader>
+
+        <CardContent className="p-4 sm:p-5 space-y-3">
+          {sessions.isLoading ? (
+            <div className="flex justify-center py-16">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            </div>
+          ) : filteredRows.length === 0 ? (
+            <div className="py-16 text-center text-sm text-muted-foreground">
+              <p>No sessions match the selected filters.</p>
+              {(filterProgram !== "all" || filterStatus !== "all" || searchQuery) && (
+                <Button
+                  variant="link"
+                  size="sm"
+                  onClick={() => {
+                    setFilterProgram("all");
+                    setFilterStatus("all");
+                    setSearchQuery("");
+                  }}
+                  className="mt-2 text-primary text-xs"
+                >
+                  Clear filters
+                </Button>
+              )}
+            </div>
+          ) : (
+            filteredRows.map((s) => {
+              const meta = PROGRAMS[s.program_type];
+              const partCount = counts.get(s.id) || 0;
+              return (
+                <div
+                  key={s.id}
+                  onClick={() => loadEditor(s.id)}
+                  className="w-full text-left rounded-xl border p-4 transition-all hover:border-primary/50 hover:bg-accent/40 bg-card cursor-pointer group flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-2xs"
+                >
+                  <div className="space-y-1.5 flex-1 min-w-0">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className={cn("text-[11px] font-bold uppercase px-2 py-0.5 rounded border", meta.soft)}>
+                        {meta.labelBn} · {meta.dayLabel}
+                      </span>
+                      <span className="font-semibold text-foreground group-hover:text-primary transition-colors flex items-center gap-1.5 text-sm">
+                        <CalendarDays className="h-3.5 w-3.5 text-primary" />
+                        {formatSessionDate(s.scheduled_date)}
+                      </span>
+                      <span className="text-xs text-muted-foreground flex items-center gap-1">
+                        <Clock className="h-3 w-3" />
+                        {displayTime(s.start_time)}
+                      </span>
+                    </div>
+                    <div className="text-sm font-medium text-foreground truncate font-serif">
+                      {s.title_bn}
+                    </div>
+                    {s.note && (
+                      <p className="text-xs text-muted-foreground line-clamp-1 italic">
+                        {s.note}
+                      </p>
+                    )}
+                  </div>
+
+                  <div className="flex items-center gap-3 self-end sm:self-center shrink-0">
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-2 text-right sm:text-left">
+                      {s.status === "cancelled" ? (
+                        <Badge variant="destructive" className="text-xs">Cancelled</Badge>
+                      ) : s.is_published ? (
+                        <Badge className="bg-emerald-600 hover:bg-emerald-700 text-xs">Published</Badge>
+                      ) : (
+                        <Badge variant="secondary" className="text-xs">Draft</Badge>
+                      )}
+                      <span className="text-xs text-muted-foreground whitespace-nowrap">
+                        {partCount} agenda {partCount === 1 ? "part" : "parts"}
+                      </span>
+                    </div>
+                    <Button variant="outline" size="sm" className="h-8 text-xs font-semibold group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
+                      Edit
+                    </Button>
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </CardContent>
+      </Card>
 
       {/* Create Modal */}
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
@@ -563,77 +703,6 @@ export default function StudyCircleManagement() {
         </DialogContent>
       </Dialog>
     </div>
-  );
-}
-
-// Session list card
-function SessionColumn({
-  title,
-  subtitle,
-  program,
-  sessions,
-  counts,
-  onEdit,
-}: {
-  title: string;
-  subtitle: string;
-  program: StudyCircleProgram;
-  sessions: StudyCircleSession[];
-  counts: Map<string, number>;
-  onEdit: (id: string) => void;
-}) {
-  const isKathamrita = program === "kathamrita";
-
-  return (
-    <Card className="border shadow-sm overflow-hidden">
-      <CardHeader className={cn("border-b py-4", isKathamrita ? "bg-orange-500/10" : "bg-purple-500/10")}>
-        <div className="flex items-center justify-between">
-          <div>
-            <CardTitle className="text-xl font-bold">{title}</CardTitle>
-            <p className="text-xs text-muted-foreground mt-0.5">{subtitle}</p>
-          </div>
-          <Badge variant="outline" className={isKathamrita ? "border-orange-300 text-orange-700" : "border-purple-300 text-purple-700"}>
-            {sessions.length} sessions
-          </Badge>
-        </div>
-      </CardHeader>
-      <CardContent className="p-4 space-y-3">
-        {sessions.length === 0 ? (
-          <p className="py-12 text-center text-sm text-muted-foreground">No sessions created yet.</p>
-        ) : (
-          sessions.map((s) => (
-            <button
-              key={s.id}
-              type="button"
-              onClick={() => onEdit(s.id)}
-              className="w-full text-left rounded-xl border p-4 transition-all hover:border-primary/50 hover:bg-accent/40 bg-card group"
-            >
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <div className="font-semibold text-foreground group-hover:text-primary transition-colors flex items-center gap-2">
-                    <CalendarDays className="h-4 w-4 text-primary" />
-                    {formatSessionDate(s.scheduled_date)}
-                  </div>
-                  <div className="text-sm text-muted-foreground mt-1 font-serif">{s.title_bn}</div>
-                </div>
-                <div className="flex flex-col items-end gap-1">
-                  {s.status === "cancelled" ? (
-                    <Badge variant="destructive">Cancelled</Badge>
-                  ) : s.is_published ? (
-                    <Badge className="bg-emerald-600 hover:bg-emerald-700">Published</Badge>
-                  ) : (
-                    <Badge variant="secondary">Draft</Badge>
-                  )}
-                  <span className="text-xs text-muted-foreground mt-1">
-                    {counts.get(s.id) || 0} agenda parts
-                  </span>
-                </div>
-              </div>
-            </button>
-          ))
-        )}
-      </CardContent>
-    </Card>
   );
 }
 
@@ -675,13 +744,13 @@ function SessionEditor({
 }) {
   const meta = PROGRAMS[editor.program_type];
 
-  const addRole = () => {
+  const addRole = (roleType: string = "Performer") => {
     onChange({
       roles: [
         ...editor.roles,
         {
           id: crypto.randomUUID(),
-          role_name: "নতুন ভূমিকা (New Role)",
+          role_name: roleType,
           display_order: editor.roles.length + 1,
           performers: [],
         },
@@ -842,8 +911,11 @@ function SessionEditor({
       {/* Section 2: Roles */}
       <Card>
         <CardHeader className="py-4 border-b flex flex-row items-center justify-between">
-          <CardTitle className="text-base font-semibold">Leadership Roles (দায়িত্বপ্রাপ্ত)</CardTitle>
-          <Button variant="outline" size="sm" onClick={addRole} className="gap-1.5 h-8">
+          <div>
+            <CardTitle className="text-base font-semibold">Assigned Roles (ভূমিকা ও দায়িত্ব)</CardTitle>
+            <p className="text-xs text-muted-foreground mt-0.5">Assign members or guests to roles.</p>
+          </div>
+          <Button variant="outline" size="sm" onClick={() => addRole("Performer")} className="gap-1.5 h-8">
             <Plus className="h-3.5 w-3.5" />
             Add Role
           </Button>
@@ -853,18 +925,41 @@ function SessionEditor({
             <div key={role.id} className="rounded-xl border p-4 bg-muted/20">
               <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
                 <div className="flex-1 space-y-2">
-                  <div className="flex items-center gap-2">
-                    <Input
-                      value={role.role_name}
-                      onChange={(e) => updateRole(role.id, { role_name: e.target.value })}
-                      className="font-medium h-9 max-w-sm"
-                    />
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Select
+                      value={USER_ROLES.includes(role.role_name as any) ? role.role_name : "Other Role"}
+                      onValueChange={(val) => {
+                        updateRole(role.id, { role_name: val });
+                      }}
+                    >
+                      <SelectTrigger className="font-semibold h-9 w-56 bg-background text-xs sm:text-sm">
+                        <SelectValue placeholder="Select Role" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {USER_ROLES.map((r) => (
+                          <SelectItem key={r} value={r} className="text-xs sm:text-sm">
+                            {r}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+
+                    {(!USER_ROLES.includes(role.role_name as any) || role.role_name === "Other Role") && (
+                      <Input
+                        value={role.role_name === "Other Role" ? "" : role.role_name}
+                        onChange={(e) => updateRole(role.id, { role_name: e.target.value || "Other Role" })}
+                        placeholder="Specific role name…"
+                        className="h-9 flex-1 min-w-[180px] max-w-xs text-xs sm:text-sm bg-background"
+                      />
+                    )}
+
                     <Button
                       type="button"
                       variant="ghost"
                       size="icon"
-                      className="h-8 w-8 text-destructive"
+                      className="h-8 w-8 text-destructive hover:bg-destructive/10 ml-auto"
                       onClick={() => onChange({ roles: editor.roles.filter((r) => r.id !== role.id) })}
+                      title="Delete role"
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>
