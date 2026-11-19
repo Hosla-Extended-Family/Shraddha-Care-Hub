@@ -17,7 +17,7 @@ import {
   Trash2,
   X,
 } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase, isSupabaseConfigured } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -47,6 +47,11 @@ import {
   generateWhatsAppMessage,
   PROGRAMS,
   USER_ROLES,
+  getStoredBundles,
+  saveStoredBundle,
+  createStoredSession,
+  deleteStoredSession,
+  listStoredSessions,
   type SessionBundle,
   type StudyCircleProgram,
   type StudyCircleSession,
@@ -102,6 +107,7 @@ export default function StudyCircleManagement() {
   const [createDate, setCreateDate] = useState(() => new Date().toISOString().slice(0, 10));
   const [publishOpen, setPublishOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const [loadingEditorId, setLoadingEditorId] = useState<string | null>(null);
 
   // Filters for unified session frame
   const [filterProgram, setFilterProgram] = useState<"all" | StudyCircleProgram>("all");
@@ -112,16 +118,16 @@ export default function StudyCircleManagement() {
   const sessions = useQuery({
     queryKey: ["admin-study-circle-sessions"],
     queryFn: async () => {
+      if (!isSupabaseConfigured) {
+        return listStoredSessions();
+      }
       try {
         const { data, error } = await supabase
           .from("study_circle_sessions")
           .select("*")
           .order("scheduled_date", { ascending: false });
         if (error || !data || data.length === 0) {
-          return {
-            rows: [DEMO_SESSIONS.kathamrita, DEMO_SESSIONS.pathochokro],
-            counts: new Map([["demo-kathamrita", 3], ["demo-pathochokro", 4]]),
-          };
+          return listStoredSessions();
         }
         const rows = (data ?? []) as unknown as StudyCircleSession[];
 
@@ -136,10 +142,7 @@ export default function StudyCircleManagement() {
         );
         return { rows, counts: new Map(counts) };
       } catch {
-        return {
-          rows: [DEMO_SESSIONS.kathamrita, DEMO_SESSIONS.pathochokro],
-          counts: new Map([["demo-kathamrita", 3], ["demo-pathochokro", 4]]),
-        };
+        return listStoredSessions();
       }
     },
   });
@@ -188,9 +191,24 @@ export default function StudyCircleManagement() {
     }
   };
 
+  const handleEditClick = async (id: string) => {
+    if (loadingEditorId) return;
+    setLoadingEditorId(id);
+    try {
+      await loadEditor(id);
+    } finally {
+      setLoadingEditorId(null);
+    }
+  };
+
   // Create session
   const createMutation = useMutation({
     mutationFn: async () => {
+      if (!isSupabaseConfigured) {
+        const bundle = createStoredSession(createProgram, createDate);
+        return bundle.session.id;
+      }
+
       const { data, error } = await supabase
         .from("study_circle_sessions")
         .insert({
@@ -236,6 +254,78 @@ export default function StudyCircleManagement() {
   // Save session mutation
   const saveMutation = useMutation({
     mutationFn: async ({ id, value }: { id: string; value: EditorState }) => {
+      if (!isSupabaseConfigured) {
+        const stored = getStoredBundles();
+        const existing = stored[id];
+
+        const updatedSession: StudyCircleSession = {
+          id,
+          program_type: value.program_type,
+          scheduled_date: value.scheduled_date,
+          start_time: value.start_time || null,
+          status: value.status,
+          title_bn: value.title_bn.trim() || PROGRAMS[value.program_type].labelBn,
+          title_en: existing?.session.title_en ?? null,
+          note: value.note.trim() || null,
+          note_en: existing?.session.note_en ?? null,
+          meeting_link: value.meeting_link.trim() || null,
+          is_published: value.is_published,
+          published_at: existing?.session.published_at ?? (value.is_published ? new Date().toISOString() : null),
+          created_at: existing?.session.created_at ?? new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        };
+
+        const updatedRoles = value.roles.map((r, rIdx) => ({
+          id: r.id || `role-${Date.now()}-${rIdx}`,
+          session_id: id,
+          role_name: r.role_name.trim() || "Untitled Role",
+          role_name_en: r.role_name.trim() || "Untitled Role",
+          display_order: rIdx + 1,
+          created_at: existing?.session.created_at ?? new Date().toISOString(),
+          performers: r.performers
+            .filter((p) => p.performer_name.trim())
+            .map((p, pIdx) => ({
+              id: `rp-${Date.now()}-${rIdx}-${pIdx}`,
+              role_id: r.id,
+              member_id: p.member_id,
+              performer_name: p.performer_name.trim(),
+              is_guest: p.is_guest,
+              display_order: pIdx + 1,
+              created_at: new Date().toISOString(),
+            })),
+        }));
+
+        const updatedParts = value.parts.map((p, pIdx) => ({
+          id: p.id || `part-${Date.now()}-${pIdx}`,
+          session_id: id,
+          part_number: p.part_number,
+          item_type: p.item_type,
+          description: p.description.trim(),
+          description_en: null,
+          reference_link: p.reference_link.trim() || null,
+          display_order: pIdx + 1,
+          created_at: existing?.session.created_at ?? new Date().toISOString(),
+          performers: p.performers
+            .filter((x) => x.performer_name.trim())
+            .map((x, xIdx) => ({
+              id: `pp-${Date.now()}-${pIdx}-${xIdx}`,
+              part_id: p.id,
+              member_id: x.member_id,
+              performer_name: x.performer_name.trim(),
+              is_guest: x.is_guest,
+              display_order: xIdx + 1,
+              created_at: new Date().toISOString(),
+            })),
+        }));
+
+        saveStoredBundle({
+          session: updatedSession,
+          roles: updatedRoles,
+          parts: updatedParts,
+        });
+        return;
+      }
+
       // 1. Update session row
       const { error: sErr } = await supabase
         .from("study_circle_sessions")
@@ -327,6 +417,7 @@ export default function StudyCircleManagement() {
       queryClient.invalidateQueries({ queryKey: ["admin-study-circle-sessions"] });
       queryClient.invalidateQueries({ queryKey: ["study-circle-next"] });
       queryClient.invalidateQueries({ queryKey: ["study-circle-current"] });
+      queryClient.invalidateQueries({ queryKey: ["study-circle-bundle"] });
       toast({ title: "Saved successfully", description: "All changes updated." });
     },
     onError: (err: unknown) => {
@@ -340,6 +431,15 @@ export default function StudyCircleManagement() {
     mutationFn: async () => {
       if (!editingId || !editor) return;
       if (dirty) await saveMutation.mutateAsync({ id: editingId, value: editor });
+      if (!isSupabaseConfigured) {
+        const stored = getStoredBundles();
+        if (stored[editingId]) {
+          stored[editingId].session.is_published = true;
+          stored[editingId].session.published_at = new Date().toISOString();
+          saveStoredBundle(stored[editingId]);
+        }
+        return;
+      }
       const { error } = await supabase
         .from("study_circle_sessions")
         .update({ is_published: true, published_at: new Date().toISOString() })
@@ -350,6 +450,8 @@ export default function StudyCircleManagement() {
       setEditor((e) => (e ? { ...e, is_published: true } : e));
       setPublishOpen(false);
       queryClient.invalidateQueries({ queryKey: ["admin-study-circle-sessions"] });
+      queryClient.invalidateQueries({ queryKey: ["study-circle-bundle"] });
+      queryClient.invalidateQueries({ queryKey: ["study-circle-current"] });
       toast({ title: "Session Published", description: "Now visible on the public schedule page." });
     },
     onError: (err: unknown) => {
@@ -361,6 +463,14 @@ export default function StudyCircleManagement() {
   const unpublishMutation = useMutation({
     mutationFn: async () => {
       if (!editingId) return;
+      if (!isSupabaseConfigured) {
+        const stored = getStoredBundles();
+        if (stored[editingId]) {
+          stored[editingId].session.is_published = false;
+          saveStoredBundle(stored[editingId]);
+        }
+        return;
+      }
       const { error } = await supabase
         .from("study_circle_sessions")
         .update({ is_published: false })
@@ -370,13 +480,23 @@ export default function StudyCircleManagement() {
     onSuccess: () => {
       setEditor((e) => (e ? { ...e, is_published: false } : e));
       queryClient.invalidateQueries({ queryKey: ["admin-study-circle-sessions"] });
+      queryClient.invalidateQueries({ queryKey: ["study-circle-bundle"] });
+      queryClient.invalidateQueries({ queryKey: ["study-circle-current"] });
       toast({ title: "Converted to Draft", description: "Hidden from public view." });
+    },
+    onError: (err: unknown) => {
+      const error = err as Error;
+      toast({ title: "Update failed", description: error.message, variant: "destructive" });
     },
   });
 
   const deleteMutation = useMutation({
     mutationFn: async () => {
       if (!editingId) return;
+      if (!isSupabaseConfigured) {
+        deleteStoredSession(editingId);
+        return;
+      }
       const { error } = await supabase.from("study_circle_sessions").delete().eq("id", editingId);
       if (error) throw error;
     },
@@ -386,7 +506,13 @@ export default function StudyCircleManagement() {
       setDeleteOpen(false);
       setDirty(false);
       queryClient.invalidateQueries({ queryKey: ["admin-study-circle-sessions"] });
+      queryClient.invalidateQueries({ queryKey: ["study-circle-bundle"] });
+      queryClient.invalidateQueries({ queryKey: ["study-circle-current"] });
       toast({ title: "Session deleted" });
+    },
+    onError: (err: unknown) => {
+      const error = err as Error;
+      toast({ title: "Delete failed", description: error.message, variant: "destructive" });
     },
   });
 
@@ -617,7 +743,7 @@ export default function StudyCircleManagement() {
               return (
                 <div
                   key={s.id}
-                  onClick={() => loadEditor(s.id)}
+                  onClick={() => handleEditClick(s.id)}
                   className="w-full text-left rounded-xl border p-4 transition-all hover:border-primary/50 hover:bg-accent/40 bg-card cursor-pointer group flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-2xs"
                 >
                   <div className="space-y-1.5 flex-1 min-w-0">
@@ -657,8 +783,25 @@ export default function StudyCircleManagement() {
                         {partCount} agenda {partCount === 1 ? "part" : "parts"}
                       </span>
                     </div>
-                    <Button variant="outline" size="sm" className="h-8 text-xs font-semibold group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
-                      Edit
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      disabled={loadingEditorId === s.id}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleEditClick(s.id);
+                      }}
+                      className="h-8 text-xs font-semibold group-hover:bg-primary group-hover:text-primary-foreground transition-colors"
+                    >
+                      {loadingEditorId === s.id ? (
+                        <>
+                          <Loader2 className="h-3 w-3 animate-spin mr-1" />
+                          Loading…
+                        </>
+                      ) : (
+                        "Edit"
+                      )}
                     </Button>
                   </div>
                 </div>

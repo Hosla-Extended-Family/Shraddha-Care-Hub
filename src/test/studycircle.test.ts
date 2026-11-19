@@ -124,4 +124,43 @@ describe("StudyCircle Helpers", () => {
     expect(msg).toContain("*বিশেষ বিজ্ঞপ্তি:* আজকের অধিবেশন স্থগিত রাখা হয়েছে");
     expect(msg).toContain("অনিবার্য কারণে অধিবেশন বাতিল করা হল");
   });
+
+  it("handles demo session creation, saving, and deletion in local store", async () => {
+    const {
+      getStoredBundles,
+      createStoredSession,
+      saveStoredBundle,
+      listStoredSessions,
+      deleteStoredSession,
+    } = await import("@/lib/studycircle");
+
+    // 1. Initial listing
+    const initial = listStoredSessions();
+    expect(initial.rows.length).toBeGreaterThan(0);
+
+    // 2. Create session
+    const created = createStoredSession("pathochokro", "2026-11-26");
+    expect(created.session.program_type).toBe("pathochokro");
+    expect(created.session.scheduled_date).toBe("2026-11-26");
+    expect(created.roles.length).toBeGreaterThan(0);
+
+    // Verify it exists in listing
+    const afterCreate = listStoredSessions();
+    expect(afterCreate.rows.some((r) => r.id === created.session.id)).toBe(true);
+
+    // 3. Edit and save session
+    created.session.title_bn = "নয়া পরীক্ষামূলক অধিবেশন";
+    created.session.is_published = true;
+    saveStoredBundle(created);
+
+    const reloaded = getStoredBundles()[created.session.id];
+    expect(reloaded.session.title_bn).toBe("নয়া পরীক্ষামূলক অধিবেশন");
+    expect(reloaded.session.is_published).toBe(true);
+
+    // 4. Delete session
+    deleteStoredSession(created.session.id);
+    const afterDelete = listStoredSessions();
+    expect(afterDelete.rows.some((r) => r.id === created.session.id)).toBe(false);
+  });
 });
+
