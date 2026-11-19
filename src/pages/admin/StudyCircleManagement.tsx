@@ -590,6 +590,27 @@ export default function StudyCircleManagement() {
     setDirty(false);
   };
 
+  // Session list data & memoized filters (must run before any conditional returns to obey Rules of Hooks)
+  const rows = sessions.data?.rows ?? [];
+  const counts = sessions.data?.counts ?? new Map<string, number>();
+
+  const filteredRows = useMemo(() => {
+    return rows.filter((s) => {
+      if (filterProgram !== "all" && s.program_type !== filterProgram) return false;
+      if (filterStatus === "scheduled" && s.status !== "scheduled") return false;
+      if (filterStatus === "cancelled" && s.status !== "cancelled") return false;
+      if (filterStatus === "published" && !s.is_published) return false;
+      if (filterStatus === "draft" && s.is_published) return false;
+      if (searchQuery.trim()) {
+        const q = searchQuery.toLowerCase().trim();
+        const matchesDate = s.scheduled_date.includes(q);
+        const matchesTitle = s.title_bn.toLowerCase().includes(q);
+        if (!matchesDate && !matchesTitle) return false;
+      }
+      return true;
+    });
+  }, [rows, filterProgram, filterStatus, searchQuery]);
+
   // Render View B: Editor
   if (editingId && editor) {
     return (
@@ -613,27 +634,6 @@ export default function StudyCircleManagement() {
       />
     );
   }
-
-  // Render View A: Session List
-  const rows = sessions.data?.rows ?? [];
-  const counts = sessions.data?.counts ?? new Map<string, number>();
-
-  const filteredRows = useMemo(() => {
-    return rows.filter((s) => {
-      if (filterProgram !== "all" && s.program_type !== filterProgram) return false;
-      if (filterStatus === "scheduled" && s.status !== "scheduled") return false;
-      if (filterStatus === "cancelled" && s.status !== "cancelled") return false;
-      if (filterStatus === "published" && !s.is_published) return false;
-      if (filterStatus === "draft" && s.is_published) return false;
-      if (searchQuery.trim()) {
-        const q = searchQuery.toLowerCase().trim();
-        const matchesDate = s.scheduled_date.includes(q);
-        const matchesTitle = s.title_bn.toLowerCase().includes(q);
-        if (!matchesDate && !matchesTitle) return false;
-      }
-      return true;
-    });
-  }, [rows, filterProgram, filterStatus, searchQuery]);
 
   return (
     <div className="space-y-6">
