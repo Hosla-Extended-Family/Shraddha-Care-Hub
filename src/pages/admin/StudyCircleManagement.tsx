@@ -655,15 +655,15 @@ export default function StudyCircleManagement() {
 
       {/* Unified Frame with Filter Options */}
       <Card className="border shadow-sm overflow-hidden">
-        <CardHeader className="bg-muted/30 border-b p-4 sm:p-5">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+        <CardHeader className="bg-muted/30 border-b p-3.5 sm:p-5">
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
             {/* Program Filter Pills */}
-            <div className="flex flex-wrap items-center gap-1.5 p-1 bg-background/80 rounded-xl border">
+            <div className="flex items-center gap-1.5 p-1 bg-background/80 rounded-xl border overflow-x-auto no-scrollbar scroll-smooth">
               <Button
                 variant={filterProgram === "all" ? "default" : "ghost"}
                 size="sm"
                 onClick={() => setFilterProgram("all")}
-                className="h-8 text-xs font-semibold rounded-lg"
+                className="h-8 text-xs font-semibold rounded-lg shrink-0"
               >
                 All Sessions ({rows.length})
               </Button>
@@ -671,7 +671,7 @@ export default function StudyCircleManagement() {
                 variant={filterProgram === "pathochokro" ? "default" : "ghost"}
                 size="sm"
                 onClick={() => setFilterProgram("pathochokro")}
-                className="h-8 text-xs font-semibold rounded-lg"
+                className="h-8 text-xs font-semibold rounded-lg shrink-0"
               >
                 পাঠচক্র · Thursday ({rows.filter((r) => r.program_type === "pathochokro").length})
               </Button>
@@ -679,16 +679,16 @@ export default function StudyCircleManagement() {
                 variant={filterProgram === "kathamrita" ? "default" : "ghost"}
                 size="sm"
                 onClick={() => setFilterProgram("kathamrita")}
-                className="h-8 text-xs font-semibold rounded-lg"
+                className="h-8 text-xs font-semibold rounded-lg shrink-0"
               >
                 রামকৃষ্ণ কথামৃত · Tuesday ({rows.filter((r) => r.program_type === "kathamrita").length})
               </Button>
             </div>
 
             {/* Status & Search Filters */}
-            <div className="flex flex-wrap items-center gap-2">
+            <div className="grid grid-cols-1 sm:flex sm:items-center gap-2 w-full lg:w-auto">
               <Select value={filterStatus} onValueChange={(v) => setFilterStatus(v as any)}>
-                <SelectTrigger className="h-9 w-36 text-xs bg-background">
+                <SelectTrigger className="h-9 w-full sm:w-36 text-xs bg-background">
                   <SelectValue placeholder="Status" />
                 </SelectTrigger>
                 <SelectContent>
@@ -700,20 +700,20 @@ export default function StudyCircleManagement() {
                 </SelectContent>
               </Select>
 
-              <div className="relative w-44 sm:w-56">
+              <div className="relative w-full sm:w-56">
                 <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
                 <Input
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Search date or title…"
-                  className="h-9 pl-8 text-xs bg-background"
+                  className="h-9 pl-8 text-xs bg-background w-full"
                 />
               </div>
             </div>
           </div>
         </CardHeader>
 
-        <CardContent className="p-4 sm:p-5 space-y-3">
+        <CardContent className="p-3 sm:p-5 space-y-3">
           {sessions.isLoading ? (
             <div className="flex justify-center py-16">
               <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -744,19 +744,19 @@ export default function StudyCircleManagement() {
                 <div
                   key={s.id}
                   onClick={() => handleEditClick(s.id)}
-                  className="w-full text-left rounded-xl border p-4 transition-all hover:border-primary/50 hover:bg-accent/40 bg-card cursor-pointer group flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-2xs"
+                  className="w-full text-left rounded-xl border p-3.5 sm:p-4 transition-all hover:border-primary/50 hover:bg-accent/40 bg-card cursor-pointer group flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-2xs"
                 >
                   <div className="space-y-1.5 flex-1 min-w-0">
                     <div className="flex flex-wrap items-center gap-2">
                       <span className={cn("text-[11px] font-bold uppercase px-2 py-0.5 rounded border", meta.soft)}>
                         {meta.labelBn} · {meta.dayLabel}
                       </span>
-                      <span className="font-semibold text-foreground group-hover:text-primary transition-colors flex items-center gap-1.5 text-sm">
-                        <CalendarDays className="h-3.5 w-3.5 text-primary" />
+                      <span className="font-semibold text-foreground group-hover:text-primary transition-colors flex items-center gap-1.5 text-xs sm:text-sm">
+                        <CalendarDays className="h-3.5 w-3.5 text-primary shrink-0" />
                         {formatSessionDate(s.scheduled_date)}
                       </span>
                       <span className="text-xs text-muted-foreground flex items-center gap-1">
-                        <Clock className="h-3 w-3" />
+                        <Clock className="h-3 w-3 shrink-0" />
                         {displayTime(s.start_time)}
                       </span>
                     </div>
@@ -770,8 +770,8 @@ export default function StudyCircleManagement() {
                     )}
                   </div>
 
-                  <div className="flex items-center gap-3 self-end sm:self-center shrink-0">
-                    <div className="flex flex-col sm:flex-row sm:items-center gap-2 text-right sm:text-left">
+                  <div className="flex items-center justify-between sm:justify-end gap-3 pt-2 sm:pt-0 border-t sm:border-0 border-border/40 shrink-0">
+                    <div className="flex items-center gap-2 text-left">
                       {s.status === "cancelled" ? (
                         <Badge variant="destructive" className="text-xs">Cancelled</Badge>
                       ) : s.is_published ? (
@@ -792,7 +792,7 @@ export default function StudyCircleManagement() {
                         e.stopPropagation();
                         handleEditClick(s.id);
                       }}
-                      className="h-8 text-xs font-semibold group-hover:bg-primary group-hover:text-primary-foreground transition-colors"
+                      className="h-8 px-3.5 text-xs font-semibold group-hover:bg-primary group-hover:text-primary-foreground transition-colors shrink-0"
                     >
                       {loadingEditorId === s.id ? (
                         <>
@@ -945,19 +945,19 @@ function SessionEditor({
   };
 
   return (
-    <div className="space-y-6 max-w-5xl mx-auto">
+    <div className="space-y-6 max-w-5xl mx-auto pb-20 sm:pb-6">
       {/* Top Header */}
-      <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between border-b pb-4">
-        <div className="flex items-center gap-3">
-          <Button variant="ghost" size="icon" onClick={onBack}>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between border-b pb-4">
+        <div className="flex items-center gap-2.5 sm:gap-3">
+          <Button variant="ghost" size="icon" onClick={onBack} className="h-9 w-9 shrink-0">
             <ArrowLeft className="h-5 w-5" />
           </Button>
-          <div>
-            <div className="flex items-center gap-2">
-              <span className={cn("text-xs font-bold uppercase px-2 py-0.5 rounded border", meta.soft)}>
+          <div className="min-w-0 flex-1">
+            <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+              <span className={cn("text-[11px] font-bold uppercase px-2 py-0.5 rounded border shrink-0", meta.soft)}>
                 {meta.shortLabel}
               </span>
-              <h1 className="text-xl font-bold">{editor.title_bn}</h1>
+              <h1 className="text-lg sm:text-xl font-bold truncate">{editor.title_bn}</h1>
             </div>
             <p className="text-xs text-muted-foreground mt-0.5">{formatSessionDate(editor.scheduled_date)}</p>
           </div>
@@ -965,44 +965,61 @@ function SessionEditor({
 
         <div className="flex flex-wrap items-center gap-2">
           {/* WhatsApp Copy */}
-          <Button variant="outline" size="sm" onClick={onCopyWhatsApp} className="gap-1.5 text-emerald-700 dark:text-emerald-400 border-emerald-300">
-            <Copy className="h-4 w-4" />
+          <Button variant="outline" size="sm" onClick={onCopyWhatsApp} className="h-9 text-xs gap-1.5 text-emerald-700 dark:text-emerald-400 border-emerald-300">
+            <Copy className="h-3.5 w-3.5" />
             WhatsApp Text
           </Button>
 
           {/* Dirty indicator */}
-          <span className="text-xs font-medium px-2 py-1 rounded bg-muted text-muted-foreground">
+          <span className="text-xs font-medium px-2.5 py-1.5 rounded bg-muted text-muted-foreground">
             {saving ? "Saving…" : dirty ? "● Unsaved" : "✓ Saved"}
           </span>
 
-          <Button size="sm" onClick={onSave} disabled={!dirty || saving} className="gap-1.5">
-            <Save className="h-4 w-4" />
+          <Button size="sm" onClick={onSave} disabled={!dirty || saving} className="h-9 text-xs font-semibold gap-1.5">
+            <Save className="h-3.5 w-3.5" />
             Save
           </Button>
 
           {editor.is_published ? (
-            <Button variant="outline" size="sm" onClick={onUnpublish}>
+            <Button variant="outline" size="sm" onClick={onUnpublish} className="h-9 text-xs">
               Make Draft
             </Button>
           ) : (
-            <Button variant="default" size="sm" onClick={onPublish} className="bg-emerald-600 hover:bg-emerald-700">
+            <Button variant="default" size="sm" onClick={onPublish} className="h-9 text-xs bg-emerald-600 hover:bg-emerald-700">
               Publish
             </Button>
           )}
 
-          <Button variant="ghost" size="icon" className="text-destructive hover:bg-destructive/10" onClick={onDelete}>
+          <Button variant="ghost" size="icon" className="h-9 w-9 text-destructive hover:bg-destructive/10 shrink-0" onClick={onDelete}>
             <Trash2 className="h-4 w-4" />
+          </Button>
+        </div>
+      </div>
+
+      {/* Sticky Mobile Bottom Bar */}
+      <div className="sm:hidden fixed bottom-3 left-3 right-3 z-30 p-2.5 rounded-xl border bg-background/95 backdrop-blur-md shadow-lg flex items-center justify-between gap-2">
+        <span className="text-xs font-medium px-2 py-1 rounded bg-muted text-muted-foreground">
+          {saving ? "Saving…" : dirty ? "● Unsaved" : "✓ Saved"}
+        </span>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" onClick={onCopyWhatsApp} className="h-8 text-xs px-2.5">
+            <Copy className="h-3 w-3 mr-1" />
+            WhatsApp
+          </Button>
+          <Button size="sm" onClick={onSave} disabled={!dirty || saving} className="h-8 text-xs px-3 font-semibold">
+            <Save className="h-3 w-3 mr-1" />
+            Save
           </Button>
         </div>
       </div>
 
       {/* Metadata Card */}
       <Card>
-        <CardHeader className="py-4 border-b">
+        <CardHeader className="py-3.5 px-4 sm:p-5 border-b">
           <CardTitle className="text-base font-semibold">Session Settings & Timing</CardTitle>
         </CardHeader>
-        <CardContent className="p-4 grid gap-4 md:grid-cols-3">
-          <div className="space-y-1.5 md:col-span-2">
+        <CardContent className="p-3.5 sm:p-5 grid gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-3">
+          <div className="space-y-1.5 sm:col-span-2">
             <Label>Bengali Title</Label>
             <Input value={editor.title_bn} onChange={(e) => onChange({ title_bn: e.target.value })} />
           </div>
@@ -1030,7 +1047,7 @@ function SessionEditor({
             <Input type="time" value={editor.start_time} onChange={(e) => onChange({ start_time: e.target.value })} />
           </div>
 
-          <div className="space-y-1.5">
+          <div className="space-y-1.5 sm:col-span-2 md:col-span-1">
             <Label>Meeting Link (Google Meet / Zoom)</Label>
             <Input
               value={editor.meeting_link}
@@ -1039,7 +1056,7 @@ function SessionEditor({
             />
           </div>
 
-          <div className="space-y-1.5 md:col-span-3">
+          <div className="space-y-1.5 sm:col-span-2 md:col-span-3">
             <Label>Note / Announcement (বিজ্ঞপ্তি)</Label>
             <Textarea
               value={editor.note}
@@ -1053,112 +1070,121 @@ function SessionEditor({
 
       {/* Section 2: Roles */}
       <Card>
-        <CardHeader className="py-4 border-b flex flex-row items-center justify-between">
+        <CardHeader className="py-3.5 px-4 sm:p-5 border-b flex flex-row items-center justify-between">
           <div>
             <CardTitle className="text-base font-semibold">Assigned Roles (ভূমিকা ও দায়িত্ব)</CardTitle>
             <p className="text-xs text-muted-foreground mt-0.5">Assign members or guests to roles.</p>
           </div>
-          <Button variant="outline" size="sm" onClick={() => addRole("Performer")} className="gap-1.5 h-8">
+          <Button variant="outline" size="sm" onClick={() => addRole("Performer")} className="gap-1.5 h-8 text-xs">
             <Plus className="h-3.5 w-3.5" />
             Add Role
           </Button>
         </CardHeader>
-        <CardContent className="p-4 space-y-4">
+        <CardContent className="p-3.5 sm:p-5 space-y-3 sm:space-y-4">
           {editor.roles.map((role) => (
-            <div key={role.id} className="rounded-xl border p-4 bg-muted/20">
-              <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
-                <div className="flex-1 space-y-2">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <Select
-                      value={USER_ROLES.includes(role.role_name as any) ? role.role_name : "Other Role"}
-                      onValueChange={(val) => {
-                        updateRole(role.id, { role_name: val });
-                      }}
-                    >
-                      <SelectTrigger className="font-semibold h-9 w-56 bg-background text-xs sm:text-sm">
-                        <SelectValue placeholder="Select Role" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {USER_ROLES.map((r) => (
-                          <SelectItem key={r} value={r} className="text-xs sm:text-sm">
-                            {r}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+            <div key={role.id} className="rounded-xl border p-3.5 sm:p-4 bg-muted/20 space-y-2.5">
+              <div className="flex flex-col sm:flex-row sm:items-center gap-2 w-full">
+                <div className="flex items-center gap-2 w-full sm:w-auto">
+                  <Select
+                    value={USER_ROLES.includes(role.role_name as any) ? role.role_name : "Other Role"}
+                    onValueChange={(val) => {
+                      updateRole(role.id, { role_name: val });
+                    }}
+                  >
+                    <SelectTrigger className="font-semibold h-9 w-full sm:w-56 bg-background text-xs sm:text-sm">
+                      <SelectValue placeholder="Select Role" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {USER_ROLES.map((r) => (
+                        <SelectItem key={r} value={r} className="text-xs sm:text-sm">
+                          {r}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
 
-                    {(!USER_ROLES.includes(role.role_name as any) || role.role_name === "Other Role") && (
-                      <Input
-                        value={role.role_name === "Other Role" ? "" : role.role_name}
-                        onChange={(e) => updateRole(role.id, { role_name: e.target.value || "Other Role" })}
-                        placeholder="Specific role name…"
-                        className="h-9 flex-1 min-w-[180px] max-w-xs text-xs sm:text-sm bg-background"
-                      />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="h-9 w-9 text-destructive hover:bg-destructive/10 sm:hidden shrink-0 ml-auto"
+                    onClick={() => onChange({ roles: editor.roles.filter((r) => r.id !== role.id) })}
+                    title="Delete role"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+
+                {(!USER_ROLES.includes(role.role_name as any) || role.role_name === "Other Role") && (
+                  <Input
+                    value={role.role_name === "Other Role" ? "" : role.role_name}
+                    onChange={(e) => updateRole(role.id, { role_name: e.target.value || "Other Role" })}
+                    placeholder="Specific role name…"
+                    className="h-9 w-full sm:flex-1 text-xs sm:text-sm bg-background"
+                  />
+                )}
+
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="h-9 w-9 text-destructive hover:bg-destructive/10 hidden sm:inline-flex shrink-0 ml-auto"
+                  onClick={() => onChange({ roles: editor.roles.filter((r) => r.id !== role.id) })}
+                  title="Delete role"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </div>
+
+              {/* Performer chips */}
+              <div className="flex flex-wrap items-center gap-2 pt-1">
+                {role.performers.map((p, pIdx) => (
+                  <span
+                    key={pIdx}
+                    className={cn(
+                      "inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full border shadow-2xs max-w-full truncate",
+                      p.is_guest
+                        ? "bg-amber-50 text-amber-900 border-amber-200 dark:bg-amber-950 dark:text-amber-200"
+                        : "bg-primary/10 text-primary border-primary/20",
                     )}
-
-                    <Button
+                  >
+                    <span className="truncate">{p.performer_name}</span>
+                    {p.is_guest && <span className="text-[10px] opacity-75 shrink-0">(Guest)</span>}
+                    <button
                       type="button"
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8 text-destructive hover:bg-destructive/10 ml-auto"
-                      onClick={() => onChange({ roles: editor.roles.filter((r) => r.id !== role.id) })}
-                      title="Delete role"
+                      onClick={() =>
+                        updateRole(role.id, {
+                          performers: role.performers.filter((_, idx) => idx !== pIdx),
+                        })
+                      }
+                      className="hover:opacity-75 shrink-0"
                     >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  </span>
+                ))}
 
-                  {/* Performer chips */}
-                  <div className="flex flex-wrap items-center gap-2 pt-1">
-                    {role.performers.map((p, pIdx) => (
-                      <span
-                        key={pIdx}
-                        className={cn(
-                          "inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full border shadow-sm",
-                          p.is_guest
-                            ? "bg-amber-50 text-amber-900 border-amber-200 dark:bg-amber-950 dark:text-amber-200"
-                            : "bg-primary/10 text-primary border-primary/20",
-                        )}
-                      >
-                        {p.performer_name}
-                        {p.is_guest && <span className="text-[10px] opacity-75">(Guest)</span>}
-                        <button
-                          type="button"
-                          onClick={() =>
-                            updateRole(role.id, {
-                              performers: role.performers.filter((_, idx) => idx !== pIdx),
-                            })
-                          }
-                          className="hover:opacity-75"
-                        >
-                          <X className="h-3.5 w-3.5" />
-                        </button>
-                      </span>
-                    ))}
-
-                    <div className="w-56">
-                      <MemberSearchCombobox
-                        onSelect={(val) => {
-                          if ("id" in val) {
-                            updateRole(role.id, {
-                              performers: [
-                                ...role.performers,
-                                { member_id: val.id, performer_name: val.name, is_guest: false },
-                              ],
-                            });
-                          } else {
-                            updateRole(role.id, {
-                              performers: [
-                                ...role.performers,
-                                { member_id: null, performer_name: val.guestName, is_guest: true },
-                              ],
-                            });
-                          }
-                        }}
-                        placeholder="+ Add performer…"
-                      />
-                    </div>
-                  </div>
+                <div className="w-full sm:w-60">
+                  <MemberSearchCombobox
+                    onSelect={(val) => {
+                      if ("id" in val) {
+                        updateRole(role.id, {
+                          performers: [
+                            ...role.performers,
+                            { member_id: val.id, performer_name: val.name, is_guest: false },
+                          ],
+                        });
+                      } else {
+                        updateRole(role.id, {
+                          performers: [
+                            ...role.performers,
+                            { member_id: null, performer_name: val.guestName, is_guest: true },
+                          ],
+                        });
+                      }
+                    }}
+                    placeholder="+ Add performer…"
+                  />
                 </div>
               </div>
             </div>
@@ -1351,7 +1377,7 @@ function SortablePartItem({
               </span>
             ))}
 
-            <div className="w-56">
+            <div className="w-full sm:w-60">
               <MemberSearchCombobox
                 onSelect={(val) => {
                   if ("id" in val) {
