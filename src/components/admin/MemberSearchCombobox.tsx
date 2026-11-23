@@ -1,6 +1,6 @@
 import { useState, useCallback } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase, isSupabaseConfigured } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Search, User, UserPlus, X, Loader2 } from "lucide-react";
@@ -42,6 +42,15 @@ export function MemberSearchCombobox({ onSelect, placeholder = "Search member…
     queryKey: ["member-search", trimmed],
     queryFn: async () => {
       if (trimmed.length < 2) return [];
+      if (!isSupabaseConfigured) {
+        const lower = trimmed.toLowerCase();
+        return DEMO_MEMBERS.filter(
+          (m) =>
+            m.name.toLowerCase().includes(lower) ||
+            (m.phone_digits && m.phone_digits.includes(trimmed)) ||
+            (m.membership_id && m.membership_id.toLowerCase().includes(lower)),
+        );
+      }
       try {
         const { data, error } = await supabase
           .from("member_imports")

@@ -5,8 +5,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { PasswordInput } from "@/components/ui/password-input";
 import { Label } from "@/components/ui/label";
-import { Loader2, AlertCircle, Lock, UserRound } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { Loader2, AlertCircle, Lock, UserRound, Sparkles } from "lucide-react";
+import { supabase, isSupabaseConfigured } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import logoShraddha from "@/assets/logo-shraddha.png";
@@ -23,13 +23,21 @@ export default function AdminLogin() {
 
   useEffect(() => {
     (async () => {
+      if (!isSupabaseConfigured) {
+        setIsCheckingAuth(false);
+        return;
+      }
       const { data: { session } } = await supabase.auth.getSession();
       if (session) {
         const { data: isAdmin } = await supabase.rpc("is_admin");
         if (isAdmin) { navigate("/admin/dashboard"); return; }
       }
-      const { data } = await supabase.functions.invoke("admin-seed", { body: { action: "status" } });
-      setNeedsSetup(Boolean((data as any)?.available));
+      try {
+        const { data } = await supabase.functions.invoke("admin-seed", { body: { action: "status" } });
+        setNeedsSetup(Boolean((data as any)?.available));
+      } catch {
+        // ignore
+      }
       setIsCheckingAuth(false);
     })();
   }, [navigate]);
@@ -38,6 +46,13 @@ export default function AdminLogin() {
     e.preventDefault();
     setError("");
     if (!username.trim() || !password) return setError("Enter your username and password");
+
+    // In local development / preview mode without live Supabase credentials, allow demo admin sign-in
+    if (!isSupabaseConfigured) {
+      toast({ title: `Welcome, ${username || "admin"}! (Demo Mode)` });
+      navigate("/admin/dashboard/study-circle");
+      return;
+    }
 
     setIsLoading(true);
     try {
@@ -73,6 +88,33 @@ export default function AdminLogin() {
           <CardDescription>Sign in with the username and password given to you by the main admin.</CardDescription>
         </CardHeader>
         <CardContent>
+          {!isSupabaseConfigured && (
+            <div className="rounded-xl border border-primary/30 bg-primary/10 p-3.5 mb-4 text-xs text-foreground">
+              <div className="flex items-center justify-between gap-2">
+                <div>
+                  <p className="font-bold text-primary flex items-center gap-1.5">
+                    <Sparkles className="h-3.5 w-3.5" /> Local Preview Demo Access
+                  </p>
+                  <p className="text-muted-foreground mt-1">
+                    Username: <code className="bg-background px-1.5 py-0.5 rounded font-mono font-bold text-foreground">admin</code> &bull; Password: <code className="bg-background px-1.5 py-0.5 rounded font-mono font-bold text-foreground">admin</code>
+                  </p>
+                </div>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  className="h-8 text-xs font-semibold shrink-0 bg-background"
+                  onClick={() => {
+                    setUsername("admin");
+                    setPassword("admin");
+                  }}
+                >
+                  Auto-fill
+                </Button>
+              </div>
+            </div>
+          )}
+
           {error && (
             <Alert variant="destructive" className="mb-4">
               <AlertCircle className="h-4 w-4" />

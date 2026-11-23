@@ -3,7 +3,7 @@ import { useNavigate, Link, Outlet, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { LayoutDashboard, FileText, Users, Settings, LogOut, Loader2, Menu, X, UsersRound, Building2, MessageSquare, Heart, CalendarDays, ClipboardList, IdCard, CalendarClock, Share2, Handshake, BookOpen, Newspaper, UserCheck, Mail, ShieldCheck, HandCoins, type LucideIcon } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase, isSupabaseConfigured } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { useAdminRole } from "@/hooks/use-admin-role";
@@ -20,12 +20,17 @@ export default function AdminDashboard() {
   const [pendingBlogs, setPendingBlogs] = useState(0);
 
   const loadBadges = async () => {
-    const [{ count: writers }, { count: blogs }] = await Promise.all([
-      supabase.from("profiles").select("*", { count: "exact", head: true }).eq("status", "pending"),
-      supabase.from("blogs").select("*", { count: "exact", head: true }).eq("status", "submitted"),
-    ]);
-    setPendingWriters(writers ?? 0);
-    setPendingBlogs(blogs ?? 0);
+    if (!isSupabaseConfigured) return;
+    try {
+      const [{ count: writers }, { count: blogs }] = await Promise.all([
+        supabase.from("profiles").select("*", { count: "exact", head: true }).eq("status", "pending"),
+        supabase.from("blogs").select("*", { count: "exact", head: true }).eq("status", "submitted"),
+      ]);
+      setPendingWriters(writers ?? 0);
+      setPendingBlogs(blogs ?? 0);
+    } catch {
+      // ignore in demo
+    }
   };
 
   useEffect(() => {
@@ -38,6 +43,12 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     const checkAuth = async () => {
+      // In local dev/preview without live Supabase credentials, allow demo admin access
+      if (!isSupabaseConfigured) {
+        setIsLoading(false);
+        return;
+      }
+
       const { data: { session } } = await supabase.auth.getSession();
       
       if (!session) {

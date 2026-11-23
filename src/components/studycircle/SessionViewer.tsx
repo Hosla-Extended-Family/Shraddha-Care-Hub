@@ -110,18 +110,18 @@ export function SessionViewer({ bundle }: { bundle: SessionBundle }) {
         </CardHeader>
       </Card>
 
-      {/* Leadership Roles */}
+      {/* Roles & Participants */}
       <Card className="rounded-2xl shadow-sm overflow-hidden">
         <CardHeader className="border-b py-3.5 px-4 sm:px-6 bg-muted/20">
           <CardTitle className="text-base sm:text-lg font-bold flex items-center gap-2">
             <UsersRound className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
-            {isBn ? "দায়িত্বপ্রাপ্ত ব্যক্তিবর্গ (Leadership & Roles)" : "Leadership & Assigned Roles"}
+            {isBn ? "ভূমিকা ও অংশগ্রহণকারী" : "Roles & Participants"}
           </CardTitle>
         </CardHeader>
         <CardContent className="p-3 sm:p-4">
           {roles.length === 0 ? (
             <p className="text-xs sm:text-sm text-muted-foreground py-4 text-center">
-              {isBn ? "দায়িত্ব বণ্টন এখনও সম্পন্ন হয়নি।" : "Role assignments pending."}
+              {isBn ? "ভূমিকা এখনও নির্ধারণ করা হয়নি।" : "No roles assigned yet."}
             </p>
           ) : (
             <div className="divide-y rounded-xl border bg-card overflow-hidden">
@@ -151,12 +151,12 @@ export function SessionViewer({ bundle }: { bundle: SessionBundle }) {
         </CardContent>
       </Card>
 
-      {/* Programme Agenda Parts */}
+      {/* Programme Agenda */}
       <Card className="rounded-2xl shadow-sm overflow-hidden">
         <CardHeader className="border-b py-3.5 px-4 sm:px-6 bg-muted/20">
           <CardTitle className="text-base sm:text-lg font-bold flex items-center gap-2">
             <BookOpen className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
-            {isBn ? "অনুষ্ঠান সূচী ও পাঠ (Programme Agenda)" : "Programme Agenda & Readings"}
+            {isBn ? "অনুষ্ঠান সূচী" : "Session Agenda"}
           </CardTitle>
         </CardHeader>
         <CardContent className="p-3 sm:p-4 space-y-3 sm:space-y-4">

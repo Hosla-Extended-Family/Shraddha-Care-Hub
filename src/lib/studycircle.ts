@@ -121,11 +121,24 @@ export const PROGRAMS: Record<StudyCircleProgram, {
   },
 };
 
+export const USER_ROLES = [
+  "Listener / Participant",
+  "Performer",
+  "Anchor / Host",
+  "Director / Coordinator",
+  "Speaker / Educator",
+  "Singer",
+  "Reader",
+  "Other Role",
+] as const;
+
+export type UserRole = (typeof USER_ROLES)[number];
+
 export const DEFAULT_ROLES = [
-  "President (সভাপতি)",
-  "Conductor (সঞ্চালক)",
-  "Reader (পাঠক)",
-  "Opening Song (উদ্বোধনী সঙ্গীত)",
+  "Anchor / Host",
+  "Director / Coordinator",
+  "Singer",
+  "Reader",
 ];
 
 export function formatSessionDate(dateStr: string, lang: "en" | "bn" = "en"): string {
@@ -194,8 +207,8 @@ export const DEMO_BUNDLES: Record<string, SessionBundle> = {
       {
         id: "r-1",
         session_id: "demo-pathochokro",
-        role_name: "President (সভাপতি)",
-        role_name_en: "President",
+        role_name: "Director / Coordinator",
+        role_name_en: "Director / Coordinator",
         display_order: 1,
         created_at: "",
         performers: [
@@ -214,8 +227,8 @@ export const DEMO_BUNDLES: Record<string, SessionBundle> = {
       {
         id: "r-2",
         session_id: "demo-pathochokro",
-        role_name: "Conductor (সঞ্চালক)",
-        role_name_en: "Conductor",
+        role_name: "Anchor / Host",
+        role_name_en: "Anchor / Host",
         display_order: 2,
         created_at: "",
         performers: [
@@ -234,7 +247,7 @@ export const DEMO_BUNDLES: Record<string, SessionBundle> = {
       {
         id: "r-3",
         session_id: "demo-pathochokro",
-        role_name: "Reader (পাঠক)",
+        role_name: "Reader",
         role_name_en: "Reader",
         display_order: 3,
         created_at: "",
@@ -254,8 +267,8 @@ export const DEMO_BUNDLES: Record<string, SessionBundle> = {
       {
         id: "r-4",
         session_id: "demo-pathochokro",
-        role_name: "Opening Song (উদ্বোধনী সঙ্গীত)",
-        role_name_en: "Opening Song",
+        role_name: "Singer",
+        role_name_en: "Singer",
         display_order: 4,
         created_at: "",
         performers: [
@@ -373,8 +386,8 @@ export const DEMO_BUNDLES: Record<string, SessionBundle> = {
       {
         id: "rk-1",
         session_id: "demo-kathamrita",
-        role_name: "President (সভাপতি)",
-        role_name_en: "President",
+        role_name: "Director / Coordinator",
+        role_name_en: "Director / Coordinator",
         display_order: 1,
         created_at: "",
         performers: [
@@ -393,8 +406,8 @@ export const DEMO_BUNDLES: Record<string, SessionBundle> = {
       {
         id: "rk-2",
         session_id: "demo-kathamrita",
-        role_name: "Conductor (সঞ্চালক)",
-        role_name_en: "Conductor",
+        role_name: "Anchor / Host",
+        role_name_en: "Anchor / Host",
         display_order: 2,
         created_at: "",
         performers: [
@@ -413,7 +426,7 @@ export const DEMO_BUNDLES: Record<string, SessionBundle> = {
       {
         id: "rk-3",
         session_id: "demo-kathamrita",
-        role_name: "Reader (পাঠক)",
+        role_name: "Reader",
         role_name_en: "Reader",
         display_order: 3,
         created_at: "",
@@ -433,8 +446,8 @@ export const DEMO_BUNDLES: Record<string, SessionBundle> = {
       {
         id: "rk-4",
         session_id: "demo-kathamrita",
-        role_name: "Opening Song (উদ্বোধনী সঙ্গীত)",
-        role_name_en: "Opening Song",
+        role_name: "Singer",
+        role_name_en: "Singer",
         display_order: 4,
         created_at: "",
         performers: [
@@ -547,8 +560,8 @@ DEMO_BUNDLES["demo-past-p1"] = {
     {
       id: "rp-p1-1",
       session_id: "demo-past-p1",
-      role_name: "President (সভাপতি)",
-      role_name_en: "President",
+      role_name: "Director / Coordinator",
+      role_name_en: "Director / Coordinator",
       display_order: 1,
       created_at: "",
       performers: [{ id: "p-p1", role_id: "rp-p1-1", member_id: "m-1", performer_name: "ডা. অসীম বন্দ্যোপাধ্যায়", performer_name_en: "Dr. Asim Bandyopadhyay", is_guest: false, display_order: 1, created_at: "" }],
@@ -625,11 +638,137 @@ export const DEMO_PAST_SESSIONS: Record<StudyCircleProgram, StudyCircleSession[]
   ],
 };
 
+export const DEMO_STORAGE_KEY = "hosla_demo_study_circle_bundles_v1";
+
+// In-memory cache to guarantee fast access and persistence across hot reloads
+let memoryBundlesCache: Record<string, SessionBundle> | null = null;
+
+export function getStoredBundles(): Record<string, SessionBundle> {
+  if (memoryBundlesCache) {
+    return memoryBundlesCache;
+  }
+  if (typeof window === "undefined") {
+    return { ...DEMO_BUNDLES };
+  }
+  try {
+    const raw = localStorage.getItem(DEMO_STORAGE_KEY);
+    if (!raw) {
+      memoryBundlesCache = { ...DEMO_BUNDLES };
+      localStorage.setItem(DEMO_STORAGE_KEY, JSON.stringify(DEMO_BUNDLES));
+      return memoryBundlesCache;
+    }
+    const parsed = JSON.parse(raw);
+    memoryBundlesCache = { ...DEMO_BUNDLES, ...parsed };
+    return memoryBundlesCache;
+  } catch {
+    memoryBundlesCache = { ...DEMO_BUNDLES };
+    return memoryBundlesCache;
+  }
+}
+
+export function saveStoredBundle(bundle: SessionBundle): void {
+  const current = getStoredBundles();
+  current[bundle.session.id] = bundle;
+  memoryBundlesCache = { ...current };
+  if (typeof window !== "undefined") {
+    try {
+      localStorage.setItem(DEMO_STORAGE_KEY, JSON.stringify(memoryBundlesCache));
+    } catch {
+      // storage quota or private browsing fallback
+    }
+  }
+}
+
+export function createStoredSession(
+  program: StudyCircleProgram,
+  scheduledDate: string,
+): SessionBundle {
+  const meta = PROGRAMS[program];
+  const newId = `demo-${program}-${Date.now()}`;
+  const nowIso = new Date().toISOString();
+
+  const newSession: StudyCircleSession = {
+    id: newId,
+    program_type: program,
+    scheduled_date: scheduledDate,
+    start_time: meta.defaultTime,
+    status: "scheduled",
+    title_bn: meta.labelBn,
+    title_en: meta.labelEn,
+    note: null,
+    note_en: null,
+    meeting_link: null,
+    is_published: false,
+    published_at: null,
+    created_at: nowIso,
+    updated_at: nowIso,
+  };
+
+  const roles: RoleWithPerformers[] = DEFAULT_ROLES.map((roleName, idx) => ({
+    id: `role-${Date.now()}-${idx}`,
+    session_id: newId,
+    role_name: roleName,
+    role_name_en: roleName,
+    display_order: idx + 1,
+    created_at: nowIso,
+    performers: [],
+  }));
+
+  const bundle: SessionBundle = {
+    session: newSession,
+    roles,
+    parts: [],
+  };
+
+  saveStoredBundle(bundle);
+  return bundle;
+}
+
+export function deleteStoredSession(sessionId: string): void {
+  const current = getStoredBundles();
+  delete current[sessionId];
+  memoryBundlesCache = { ...current };
+  if (typeof window !== "undefined") {
+    try {
+      localStorage.setItem(DEMO_STORAGE_KEY, JSON.stringify(memoryBundlesCache));
+    } catch {
+      // ignore
+    }
+  }
+}
+
+export function listStoredSessions(): { rows: StudyCircleSession[]; counts: Map<string, number> } {
+  const bundles = getStoredBundles();
+  const rows = Object.values(bundles)
+    .map((b) => b.session)
+    .sort((a, b) => b.scheduled_date.localeCompare(a.scheduled_date));
+  const counts = new Map<string, number>();
+  for (const b of Object.values(bundles)) {
+    counts.set(b.session.id, b.parts?.length ?? 0);
+  }
+  return { rows, counts };
+}
+
 export async function fetchUpcomingSession(
   program: StudyCircleProgram,
 ): Promise<StudyCircleSession | null> {
   if (!isSupabaseConfigured) {
-    return DEMO_SESSIONS[program] ?? null;
+    const stored = getStoredBundles();
+    const today = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Kolkata" }).format(new Date());
+    const candidates = Object.values(stored)
+      .map((b) => b.session)
+      .filter((s) => s.program_type === program && s.is_published);
+
+    if (candidates.length === 0) return DEMO_SESSIONS[program] ?? null;
+
+    const upcoming = candidates
+      .filter((s) => s.scheduled_date >= today)
+      .sort((a, b) => a.scheduled_date.localeCompare(b.scheduled_date));
+
+    if (upcoming.length > 0) return upcoming[0];
+
+    const sortedAll = candidates.sort((a, b) => b.scheduled_date.localeCompare(a.scheduled_date));
+    return sortedAll[0] ?? DEMO_SESSIONS[program] ?? null;
   }
 
   try {
@@ -660,12 +799,13 @@ export async function fetchUpcomingSession(
 }
 
 export async function fetchSessionBundle(sessionId: string): Promise<SessionBundle> {
-  if (DEMO_BUNDLES[sessionId]) {
-    return DEMO_BUNDLES[sessionId];
+  const stored = getStoredBundles();
+  if (stored[sessionId]) {
+    return stored[sessionId];
   }
 
   if (!isSupabaseConfigured) {
-    return DEMO_BUNDLES[sessionId] ?? DEMO_BUNDLES["demo-pathochokro"];
+    return stored[sessionId] ?? DEMO_BUNDLES[sessionId] ?? DEMO_BUNDLES["demo-pathochokro"];
   }
 
   try {
@@ -685,7 +825,7 @@ export async function fetchSessionBundle(sessionId: string): Promise<SessionBund
     ]);
 
     if (sErr || !session) {
-      return DEMO_BUNDLES[sessionId] ?? DEMO_BUNDLES["demo-pathochokro"];
+      return stored[sessionId] ?? DEMO_BUNDLES[sessionId] ?? DEMO_BUNDLES["demo-pathochokro"];
     }
     if (rErr) throw rErr;
     if (pErr) throw pErr;
@@ -726,7 +866,7 @@ export async function fetchSessionBundle(sessionId: string): Promise<SessionBund
       })),
     };
   } catch {
-    return DEMO_BUNDLES[sessionId] ?? DEMO_BUNDLES["demo-pathochokro"];
+    return stored[sessionId] ?? DEMO_BUNDLES[sessionId] ?? DEMO_BUNDLES["demo-pathochokro"];
   }
 }
 
