@@ -13,6 +13,7 @@ import {
   hasJoinLink, timeToMinutes, type RoutineSession,
 } from "@/lib/routine";
 import { cn } from "@/lib/utils";
+import { StudyCircleCTA } from "@/components/studycircle/StudyCircleCTA";
 
 export default function DailyRoutine() {
   const [now, setNow] = useState(() => getISTNow());
@@ -113,6 +114,9 @@ export default function DailyRoutine() {
           </ScrollReveal>
         </div>
       </section>
+
+      {/* Weekly Study Circle CTA Banner */}
+      <StudyCircleCTA />
 
       <section className="py-8 lg:py-12">
         <div className="container max-w-5xl">
